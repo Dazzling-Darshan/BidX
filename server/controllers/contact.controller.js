@@ -37,16 +37,16 @@ export const handleSendMessage = async (req, res) => {
 
     await resend.batch.send([
       {
-        from: `Online Auction <noreply@yourdomain.com>`,
+        from: `Auction Platform <noreply@yourdomain.com>`,
         to: ["your-admin-email@example.com"],
         reply_to: email,
         subject: `${safeName} sent a message`,
         html: adminEmailTemplate(safeName, safeEmail, safeSubject, safeMessage),
       },
       {
-        from: `Online Auction <noreply@yourdomain.com>`,
+        from: `Darshan Prajapati <noreply@yourdomain.com>`,
         to: email,
-        subject: `Reply from Online Auction`,
+        subject: `Reply from Darshan Prajapati`,
         html: userEmailTemplate(safeName, safeEmail, safeSubject, safeMessage),
       },
     ]);
@@ -116,7 +116,7 @@ const userEmailTemplate = (name, email, subject, message) => `
         </p>
 
         <div class="footer">
-          &copy; 2025 Online Auction. All rights reserved. <br />
+          &copy; 2025 Auction Platform (Darshan Prajapati). All rights reserved. <br />
           This is an automated confirmation. Please do not reply.
         </div>
       </div>

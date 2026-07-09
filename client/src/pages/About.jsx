@@ -1,11 +1,8 @@
 import { Link } from "react-router";
-// import { AdsComponent } from "../components/AdsComponent";
-import { useSelector } from "react-redux";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export const About = () => {
   useDocumentTitle("About");
-  const { user } = useSelector((state) => state.auth);
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-12">
@@ -16,54 +13,45 @@ export const About = () => {
 
           <div className="prose max-w-none text-gray-700 leading-relaxed space-y-6">
             <p className="text-lg">
-              Welcome to our Online Auction System - a comprehensive web
-              application designed to facilitate online bidding and auctions.
+              Welcome to the Auction Platform — a full-stack real-time bidding
+              application built using the MERN stack.
             </p>
 
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Project Purpose
+                About This Project
               </h2>
               <p>
-                This project has been developed as an educational resource for
-                students pursuing their final year or third year minor/major
-                projects. It serves as a practical example of building a
-                full-featured web application with modern technologies and best
-                practices.
+                This project was built as a personal learning exercise to
+                practice modern full-stack web development. It covers
+                real-time communication with Socket.io, JWT authentication,
+                role-based access control, cloud image uploads, and building a
+                complete REST API with Express and MongoDB.
               </p>
             </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                For Students
-              </h2>
-              <p>
-                If you're a computer science or related field student working on
-                your academic project, you can use this codebase to:
-              </p>
-              <ul className="list-disc pl-6 mt-3 space-y-2">
-                <li>
-                  Understand modern web development patterns and practices
-                </li>
-                <li>Learn how to implement real-time bidding systems</li>
-                <li>Study user authentication and authorization</li>
-                <li>Explore database design for auction systems</li>
-                <li>Learn about responsive design and user experience</li>
-              </ul>
-            </section>
-
-            {/* {!user && <AdsComponent dataAdSlot="1002244889" />} */}
 
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Key Features
               </h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li>User registration and authentication</li>
-                <li>Real-time auction bidding</li>
-                <li>Item listing and management</li>
-                <li>User profile management</li>
+                <li>User registration and authentication (JWT + httpOnly cookies)</li>
+                <li>Real-time auction bidding with Socket.io</li>
+                <li>Item listing and management with Cloudinary image upload</li>
+                <li>Admin panel for managing users and auctions</li>
                 <li>Responsive design for all devices</li>
+                <li>Login history and security tracking</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Tech Stack
+              </h2>
+              <ul className="list-disc pl-6 space-y-2">
+                <li><strong>Frontend:</strong> React 19, Vite, Tailwind CSS v4, Redux Toolkit, React Query, Socket.io Client</li>
+                <li><strong>Backend:</strong> Node.js, Express 5, MongoDB, Mongoose, Socket.io, JWT, bcrypt</li>
+                <li><strong>Services:</strong> Cloudinary (images), Resend (email)</li>
               </ul>
             </section>
 
@@ -72,53 +60,40 @@ export const About = () => {
                 Developer
               </h2>
               <p>
-                This project has been created as a demonstration of modern web
-                development techniques and to help fellow students in their
-                academic journey.
+                Built by <strong>Darshan Prajapati</strong> as a personal
+                learning project to explore full-stack MERN development with
+                real-time features.
               </p>
 
               <div className="mt-4 p-4 bg-gray-50 rounded-sm">
                 <p className="font-medium text-gray-900 mb-2">
-                  Project Repository:
+                  Find me on GitHub:
                 </p>
                 <div className="space-y-2">
                   <p>
-                    <span className="font-medium">GitHub Repository:</span>{" "}
+                    <span className="font-medium">GitHub Profile:</span>{" "}
                     <a
-                      href="https://github.com/your-username/online-auction-system"
+                      href="https://github.com/Dazzling-Darshan"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline"
                     >
-                      github.com/your-username/online-auction-system
+                      github.com/Dazzling-Darshan
+                    </a>
+                  </p>
+                  <p>
+                    <span className="font-medium">Project Repository:</span>{" "}
+                    <a
+                      href="https://github.com/Dazzling-Darshan/auction-platform"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      github.com/Dazzling-Darshan/auction-platform
                     </a>
                   </p>
                 </div>
               </div>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Getting Started
-              </h2>
-              <p>
-                To get started with this project, visit the GitHub repository
-                where you'll find detailed installation instructions,
-                documentation, and code explanations. The repository includes
-                everything you need to set up and run the application locally.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Academic Use
-              </h2>
-              <p>
-                Students are encouraged to study this codebase, understand the
-                implementation, and adapt it for their own projects. Please
-                ensure you follow your institution's guidelines regarding code
-                usage and attribution in academic work.
-              </p>
             </section>
 
             <div className="mt-12 pt-8 border-t border-gray-200">
@@ -128,7 +103,7 @@ export const About = () => {
                   to="/contact"
                   className="text-blue-600 hover:text-blue-800 underline font-medium"
                 >
-                  contact us
+                  contact me
                 </Link>{" "}
                 for assistance.
               </p>
