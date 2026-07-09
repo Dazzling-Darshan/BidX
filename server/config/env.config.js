@@ -16,7 +16,7 @@ export const env = {
   resend_api_key: process.env.RESEND_API_KEY,
 };
 
-// Validate critical environment variables at startup
+// Fail fast when essential server configuration is missing.
 const requiredVars = ["mongo_uri", "jwt_secret", "origin"];
 for (const key of requiredVars) {
   if (!env[key]) {
