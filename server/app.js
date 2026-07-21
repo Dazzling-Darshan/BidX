@@ -60,4 +60,9 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", cloudinaryRoutes);
 
+// Health check endpoint for Render deployment monitoring
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 export default app; // Exporting default app for serverless deployment
