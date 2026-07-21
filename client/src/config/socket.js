@@ -1,6 +1,10 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_API;
+// Socket.IO must connect to the base server URL, not the /api path.
+// VITE_SOCKET_URL should be set to e.g. https://your-app.onrender.com
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  import.meta.env.VITE_API?.replace("/api", "");
 
 let socket = null;
 

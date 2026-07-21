@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: auction-backend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ORIGIN
+        sync: false   # Set this in Render dashboard: your Vercel frontend URL
+      - key: MONGO_URL
+        sync: false   # Set this in Render dashboard
+      - key: JWT_SECRET
+        sync: false   # Set this in Render dashboard
+      - key: JWT_EXPIRES_IN
+        value: 4d
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false   # Set this in Render dashboard
+      - key: CLOUDINARY_API_KEY
+        sync: false   # Set this in Render dashboard
+      - key: CLOUDINARY_API_SECRET
+        sync: false   # Set this in Render dashboard
+      - key: CLOUDINARY_URL
+        sync: false   # Set this in Render dashboard
+      - key: RESEND_API_KEY
+        sync: false   # Set this in Render dashboard
