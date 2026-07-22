@@ -1,4 +1,4 @@
-# Online Auction System
+# BidX
 
 A modern, real-time full-stack auction platform built with React, Express, MongoDB, and Socket.io.
 
