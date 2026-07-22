@@ -13,7 +13,7 @@ export const About = () => {
 
           <div className="prose max-w-none text-gray-700 leading-relaxed space-y-6">
             <p className="text-lg">
-              Welcome to the Auction Platform — a full-stack real-time bidding
+              Welcome to BidX — a full-stack real-time bidding
               application built using the MERN stack.
             </p>
 

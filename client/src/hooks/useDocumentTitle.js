@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const SITE_NAME = "Online Auction";
+const SITE_NAME = "BidX";
 
 /**
  * Sets the document title for the current page.

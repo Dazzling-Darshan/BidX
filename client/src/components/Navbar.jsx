@@ -21,6 +21,7 @@ import {
 import { RiAuctionLine } from "react-icons/ri";
 import { HiOutlineMenuAlt3 } from "react-icons/hi";
 import { FiTarget } from "react-icons/fi";
+import BidXLogo from "../assets/BidXLogo.png";
 
 export const Navbar = () => {
   const dispatch = useDispatch();
@@ -78,11 +79,13 @@ export const Navbar = () => {
             <div className="flex justify-between items-center h-16">
               {/* Logo */}
               <Link to="/" className="flex items-center gap-2.5 group">
-                <div className="bg-indigo-600 text-white p-1.5 rounded-lg group-hover:bg-indigo-700 transition">
-                  <RiAuctionLine className="h-5 w-5" />
-                </div>
+                <img
+                  src={BidXLogo}
+                  alt="BidX Logo"
+                  className="h-10 w-10 object-contain"
+                />
                 <span className="text-lg font-bold text-gray-900 tracking-tight">
-                  Online Auction
+                  BidX
                 </span>
               </Link>
 
@@ -178,11 +181,13 @@ export const Navbar = () => {
             className="flex items-center gap-2.5"
             onClick={() => setIsMenuOpen(false)}
           >
-            <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
-              <RiAuctionLine className="h-5 w-5" />
-            </div>
+            <img
+              src={BidXLogo}
+              alt="BidX Logo"
+              className="h-10 w-10 object-contain"
+            />
             <span className="text-lg font-bold text-gray-900 tracking-tight">
-              Online Auction
+              BidX
             </span>
           </Link>
           <button
