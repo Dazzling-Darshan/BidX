@@ -81,7 +81,3 @@ src/
 | Axios | 1.9.0 | HTTP client |
 | Socket.io Client | 4.8.3 | Real-time |
 | react-hot-toast | 2.6.0 | Notifications |
-
----
-
-**Built by [Darshan Prajapati](https://github.com/Dazzling-Darshan)**

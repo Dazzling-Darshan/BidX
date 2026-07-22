@@ -145,9 +145,3 @@ Base URL: `http://localhost:3000`
 
 ### Login History
 - `userId`, `ipAddress`, `location`, `loginAt` (TTL: ~6 months)
-
----
-
-## License
-
-MIT — **[Darshan Prajapati](https://github.com/Dazzling-Darshan)**
