@@ -14,6 +14,7 @@ export const env = {
   cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET,
   cloudinary_url: process.env.CLOUDINARY_URL,
   resend_api_key: process.env.RESEND_API_KEY,
+  gemini_api_key: process.env.GEMINI_API_KEY,
 };
 
 // Fail fast when essential server configuration is missing.

@@ -93,3 +93,9 @@ export const dashboardStats = async () => {
   const res = await api.get(`/auction/stats`);
   return res.data;
 };
+
+// AI auto-generate listing details from image URL
+export const generateAIListingDetails = async ({ imageUrl }) => {
+  const res = await api.post(`/auction/ai-generate`, { imageUrl });
+  return res.data;
+};

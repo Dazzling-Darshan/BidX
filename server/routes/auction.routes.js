@@ -7,11 +7,14 @@ import {
   dashboardData,
   myAuction,
   myBids,
+  generateAuctionAIListing,
 } from "../controllers/auction.controller.js";
 import { secureRoute } from "../middleware/auth.middleware.js";
 
 const auctionRoutes = express.Router();
 auctionRoutes.use(secureRoute);
+
+auctionRoutes.post("/ai-generate", generateAuctionAIListing);
 
 auctionRoutes.get("/stats", dashboardData);
 

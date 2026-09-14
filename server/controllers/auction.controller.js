@@ -3,6 +3,7 @@ import Product from "../models/product.model.js";
 import mongoose from "mongoose";
 import { getIO } from "../socket/index.js";
 import Upload from "../models/upload.model.js";
+import { analyzeAuctionImage } from "../services/gemini.service.js";
 
 export const createAuction = async (req, res) => {
   try {
@@ -424,5 +425,31 @@ export const myBids = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Error fetching my bids", error: error.message });
+  }
+};
+
+export const generateAuctionAIListing = async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "Image URL is required for AI listing generation",
+      });
+    }
+
+    const listingDetails = await analyzeAuctionImage(imageUrl);
+
+    return res.status(200).json({
+      success: true,
+      message: "Listing details generated successfully",
+      data: listingDetails,
+    });
+  } catch (error) {
+    console.error("AI Generation Error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to generate auction details with AI",
+    });
   }
 };

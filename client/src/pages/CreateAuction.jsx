@@ -5,7 +5,9 @@ import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import {
   getUploadSignature,
   uploadImageToCloudinary,
+  generateAIListingDetails,
 } from "../services/auction.service.js";
+import toast from "react-hot-toast";
 
 export const CreateAuction = () => {
   useDocumentTitle("Create Auction");
@@ -21,6 +23,7 @@ export const CreateAuction = () => {
 
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState("");
   const [selectedFileName, setSelectedFileName] = useState("");
@@ -189,6 +192,52 @@ export const CreateAuction = () => {
     }
   };
 
+  const handleAIGenerate = async () => {
+    const uploadMeta = uploadedMetaRef.current;
+    if (!uploadMeta?.secure_url) {
+      if (isUploading) {
+        toast("Please wait until the photo finishes uploading", { icon: "⏳" });
+      } else {
+        toast.error("Please upload an item photo first");
+      }
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    setError("");
+
+    try {
+      const res = await generateAIListingDetails({
+        imageUrl: uploadMeta.secure_url,
+      });
+
+      if (res?.success && res?.data) {
+        const { itemName, itemCategory, startingPrice, itemDescription } =
+          res.data;
+        setFormData((prev) => ({
+          ...prev,
+          itemName: itemName || prev.itemName,
+          itemCategory: itemCategory || prev.itemCategory,
+          startingPrice: startingPrice ? String(startingPrice) : prev.startingPrice,
+          itemDescription: itemDescription || prev.itemDescription,
+        }));
+        toast.success("Listing details auto-filled by AI!", {
+          icon: "✨",
+          duration: 4000,
+        });
+      }
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to auto-generate details with AI";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -267,6 +316,65 @@ export const CreateAuction = () => {
 
         <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm">
           <div className="p-6 sm:p-8">
+            {/* AI Assistant Banner */}
+            <div className="mb-6 bg-gradient-to-r from-violet-50 via-indigo-50 to-purple-50 border border-indigo-100/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm shadow-indigo-200 shrink-0">
+                  <span className="text-lg">✨</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    AI Auto-Listing Generator
+                    <span className="text-[10px] uppercase font-bold tracking-wider bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                      Gemini Vision
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Upload an item photo below and let AI automatically generate the title, category, description, and suggested starting price.
+                  </p>
+                </div>
+              </div>
+
+              {previewUrl && (
+                <button
+                  type="button"
+                  onClick={handleAIGenerate}
+                  disabled={isGeneratingAI || isUploading}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl hover:from-violet-700 hover:to-indigo-700 active:scale-[0.98] transition-all shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <svg
+                        className="animate-spin h-3.5 w-3.5 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        />
+                      </svg>
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>✨</span>
+                      <span>Auto-fill with AI</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label
@@ -439,57 +547,115 @@ export const CreateAuction = () => {
                     />
                   </label>
                 ) : (
-                  <div className="relative inline-block">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="w-44 h-44 object-cover rounded-2xl border border-gray-200"
-                    />
+                  <div className="flex flex-col sm:flex-row items-start gap-5 p-4 bg-gray-50 border border-gray-200/80 rounded-2xl">
+                    <div className="relative shrink-0">
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="w-40 h-40 object-cover rounded-xl border border-gray-200 shadow-sm"
+                      />
 
-                    <button
-                      type="button"
-                      onClick={clearUploadedImage}
-                      className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-full p-1 shadow-sm hover:bg-red-50 hover:border-red-200 transition"
-                    >
-                      <svg
-                        className="w-4 h-4 text-gray-500 hover:text-red-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                      <button
+                        type="button"
+                        onClick={clearUploadedImage}
+                        className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-full p-1.5 shadow-sm hover:bg-red-50 hover:border-red-200 transition cursor-pointer"
+                        title="Remove image"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-3.5 h-3.5 text-gray-500 hover:text-red-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
 
-                    <div className="mt-3 w-44">
-                      <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
-                        <span className="truncate pr-2">
-                          {selectedFileName}
-                        </span>
-                        <span className="tabular-nums">{uploadProgress}%</span>
+                    <div className="flex-1 w-full flex flex-col justify-between self-stretch py-1">
+                      <div>
+                        <div className="flex items-center justify-between text-xs text-gray-600 mb-1.5 font-medium">
+                          <span className="truncate pr-2 max-w-[200px]">
+                            {selectedFileName}
+                          </span>
+                          <span className="tabular-nums font-semibold">
+                            {uploadProgress}%
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-gray-200/80 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-200 ${
+                              uploadProgress === 100
+                                ? "bg-emerald-500"
+                                : "bg-indigo-500"
+                            }`}
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1.5">
+                          {isUploading ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                              Uploading to Cloudinary...
+                            </>
+                          ) : uploadProgress === 100 ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Cloud upload ready
+                            </>
+                          ) : (
+                            "Ready"
+                          )}
+                        </p>
                       </div>
-                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-200 ${
-                            uploadProgress === 100
-                              ? "bg-emerald-500"
-                              : "bg-indigo-500"
-                          }`}
-                          style={{ width: `${uploadProgress}%` }}
-                        />
+
+                      {/* AI Auto-fill Button */}
+                      <div className="mt-4 pt-3 border-t border-gray-200/60">
+                        <button
+                          type="button"
+                          onClick={handleAIGenerate}
+                          disabled={isGeneratingAI || isUploading}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 text-white font-semibold text-xs rounded-xl hover:from-violet-700 hover:via-indigo-700 hover:to-purple-700 active:scale-[0.98] transition-all shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {isGeneratingAI ? (
+                            <>
+                              <svg
+                                className="animate-spin h-4 w-4 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v8H4z"
+                                />
+                              </svg>
+                              <span>Analyzing image with Gemini AI...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-sm">✨</span>
+                              <span>Auto-fill details with AI</span>
+                            </>
+                          )}
+                        </button>
+                        <p className="text-[11px] text-gray-400 text-center mt-1.5">
+                          Generates title, category, starting bid & description
+                        </p>
                       </div>
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        {isUploading
-                          ? "Uploading to Cloudinary..."
-                          : uploadProgress === 100
-                            ? "Upload complete"
-                            : "Ready"}
-                      </p>
                     </div>
                   </div>
                 )}
