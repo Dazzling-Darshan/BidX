@@ -75,8 +75,22 @@ export const showAuction = async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
     const skip = (page - 1) * limit;
+    const { category, search } = req.query;
 
     const filter = { itemEndDate: { $gt: new Date() } };
+
+    if (category && category.toLowerCase() !== "all") {
+      filter.itemCategory = category;
+    }
+
+    if (search && search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.$or = [
+        { itemName: { $regex: escaped, $options: "i" } },
+        { itemDescription: { $regex: escaped, $options: "i" } },
+      ];
+    }
+
     const total = await Product.countDocuments(filter);
 
     const auction = await Product.find(filter)
@@ -87,6 +101,7 @@ export const showAuction = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
     const formatted = auction.map((item) => ({
       _id: item._id,
       itemName: item.itemName,
@@ -95,7 +110,7 @@ export const showAuction = async (req, res) => {
       bidsCount: item.bids.length,
       timeLeft: Math.max(0, new Date(item.itemEndDate) - new Date()),
       itemCategory: item.itemCategory,
-      sellerName: item.seller.name,
+      sellerName: item.seller?.name || "Unknown",
       itemPhoto: item.itemImage?.url,
     }));
 
@@ -130,30 +145,14 @@ export const auctionById = async (req, res) => {
     // Auto-set winner when auction has ended and has bids but no winner yet
     const isExpired = new Date(auction.itemEndDate) < new Date();
     if (isExpired && !auction.winner && auction.bids.length > 0) {
-      // Highest bid = first after sorting descending
       const sortedBids = [...auction.bids].sort(
         (a, b) => b.bidAmount - a.bidAmount,
       );
       const highestBid = sortedBids[0];
-      auction.winner = highestBid.bidder;
+      auction.winner = highestBid.bidder?._id || highestBid.bidder;
       auction.isSold = true;
       await auction.save();
-      // Re-populate winner after save
       await auction.populate("winner", "name");
-    }
-
-    // If auction is expired, only allow seller and bidders to view it
-    if (isExpired) {
-      const userId = req.user.id;
-      const isSeller = auction.seller._id.toString() === userId;
-      const isBidder = auction.bids.some(
-        (b) => b.bidder?._id?.toString() === userId,
-      );
-      if (!isSeller && !isBidder) {
-        return res.status(403).json({
-          message: "This auction has ended and is no longer available",
-        });
-      }
     }
 
     auction.bids.sort((a, b) => new Date(b.bidTime) - new Date(a.bidTime));

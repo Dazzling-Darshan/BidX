@@ -106,9 +106,9 @@ export default function Profile() {
               <div className="flex flex-col sm:flex-row items-center">
                 <div className="relative mb-4 sm:mb-0">
                   <img
-                    src={user.user.avatar}
+                    src={user?.user?.avatar || "https://avatar.iran.liara.run/public/7"}
                     alt="User avatar"
-                    className="h-20 w-20 rounded-full bg-gray-200 mx-auto sm:mx-0"
+                    className="h-20 w-20 rounded-full bg-gray-200 mx-auto sm:mx-0 object-cover"
                   />
                   <button className="absolute bottom-0 right-0 sm:right-0 bg-white rounded-full p-1 border border-gray-300 shadow-sm">
                     <CiCamera className="h-4 w-4 text-gray-500" />
@@ -116,9 +116,9 @@ export default function Profile() {
                 </div>
                 <div className="ml-0 sm:ml-4 text-center sm:text-left">
                   <h2 className="text-lg font-medium text-gray-900">
-                    {user.user.name}
+                    {user?.user?.name || "User"}
                   </h2>
-                  <p className="text-sm text-gray-500">{user.user.email}</p>
+                  <p className="text-sm text-gray-500">{user?.user?.email || ""}</p>
                 </div>
               </div>
             </div>
@@ -145,7 +145,7 @@ export default function Profile() {
                         type="text"
                         name="name"
                         id="name"
-                        value={user.user.name}
+                        value={user?.user?.name || ""}
                         className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-400"
                         placeholder="Your full name"
                         required
@@ -169,7 +169,7 @@ export default function Profile() {
                         type="email"
                         name="email"
                         id="email"
-                        value={user.user.email}
+                        value={user?.user?.email || ""}
                         disabled
                         className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-400"
                         placeholder="you@example.com"

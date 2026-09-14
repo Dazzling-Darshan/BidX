@@ -21,7 +21,7 @@ export const ViewAuction = () => {
     seconds: 0,
   });
 
-  const { data: fetchedData, isLoading } = useViewAuction(id);
+  const { data: fetchedData, isLoading, isError, error: queryError } = useViewAuction(id);
   const { mutateAsync: placeBidMutation } = usePlaceBid();
   const { activeUsers, liveAuction, socketError, isConnected } = useSocket(
     id,
@@ -48,7 +48,29 @@ export const ViewAuction = () => {
     return () => clearInterval(interval);
   }, [data?.itemEndDate]);
 
-  if (isLoading || !data) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen />;
+
+  if (isError || !data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center max-w-md bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 mx-auto flex items-center justify-center text-xl mb-4 font-bold border border-red-100">
+            !
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Auction Unavailable</h2>
+          <p className="text-sm text-gray-500 mb-6">
+            {queryError?.response?.data?.message || "This auction may have ended or does not exist."}
+          </p>
+          <button
+            onClick={() => navigate("/auction")}
+            className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition cursor-pointer"
+          >
+            Browse all auctions
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleBidSubmit = async (e) => {
     e.preventDefault();
@@ -70,8 +92,15 @@ export const ViewAuction = () => {
 
   const timeLeft = Math.max(0, new Date(data.itemEndDate) - new Date());
   const isActive = timeLeft > 0;
-  const isSeller = data.seller._id === currentUserId;
-  const winnerData = data.winner;
+  const isSeller = data.seller?._id === currentUserId;
+
+  // Derive leading bid and winner accurately even during live timer expiry
+  const bidsSortedByAmount = [...(data.bids || [])].sort(
+    (a, b) => Number(b.bidAmount) - Number(a.bidAmount),
+  );
+  const leadingBid = bidsSortedByAmount[0];
+  const winnerData =
+    data.winner || (!isActive && leadingBid ? leadingBid.bidder : null);
 
   const otherUsers = activeUsers.filter((u) => u.userId !== currentUserId);
 
@@ -382,10 +411,33 @@ export const ViewAuction = () => {
                   >
                     Place your bid
                   </label>
-                  <span className="text-xs text-gray-400">
-                    Rs {data.currentPrice + 1} – {data.currentPrice + 10}
+                  <span className="text-xs text-gray-400 font-medium">
+                    Allowed: Rs {data.currentPrice + 1} – {data.currentPrice + 10}
                   </span>
                 </div>
+
+                {/* Quick Bid Presets */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs text-gray-400 font-medium">Quick Bid:</span>
+                  {[1, 5, 10].map((inc) => {
+                    const quickVal = data.currentPrice + inc;
+                    return (
+                      <button
+                        key={inc}
+                        type="button"
+                        onClick={() => {
+                          if (inputRef.current) {
+                            inputRef.current.value = String(quickVal);
+                          }
+                        }}
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 active:scale-95 transition cursor-pointer border border-indigo-100"
+                      >
+                        +Rs {inc} ({quickVal})
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">

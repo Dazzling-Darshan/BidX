@@ -2,8 +2,17 @@ import axios from "axios";
 import { api } from "../config/api.js";
 
 // getting list of all auction
-export const getAuctions = async ({ page = 1, limit = 12 } = {}) => {
-  const res = await api.get(`/auction?page=${page}&limit=${limit}`);
+export const getAuctions = async ({
+  page = 1,
+  limit = 12,
+  category = "all",
+  search = "",
+} = {}) => {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (category && category !== "all") params.append("category", category);
+  if (search && search.trim()) params.append("search", search.trim());
+
+  const res = await api.get(`/auction?${params.toString()}`);
   return res.data;
 };
 

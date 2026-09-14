@@ -2,9 +2,45 @@ import { Link } from "react-router";
 import { usePrefetchHandlers } from "../hooks/useAuction.js";
 
 export default function AuctionCard({ auction }) {
-  const daysLeft = Math.ceil(auction.timeLeft / (1000 * 60 * 60 * 24));
-  const isActive = daysLeft > 0;
   const { prefetchAuction } = usePrefetchHandlers();
+
+  const getTimeBadge = (timeLeftMs) => {
+    if (!timeLeftMs || timeLeftMs <= 0) {
+      return {
+        label: "Ended",
+        className: "bg-gray-800/85 text-white",
+        urgent: false,
+      };
+    }
+
+    const minutes = Math.floor(timeLeftMs / (1000 * 60));
+    const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
+    const days = Math.floor(timeLeftMs / (1000 * 60 * 60 * 24));
+
+    if (minutes < 60) {
+      return {
+        label: `${Math.max(1, minutes)}m left`,
+        className: "bg-rose-600 text-white font-bold shadow-sm shadow-rose-200",
+        urgent: true,
+      };
+    }
+
+    if (hours < 24) {
+      return {
+        label: `${hours}h left`,
+        className: "bg-amber-500/95 text-white font-semibold shadow-sm shadow-amber-200",
+        urgent: false,
+      };
+    }
+
+    return {
+      label: `${days}d left`,
+      className: "bg-emerald-600/95 text-white shadow-sm",
+      urgent: false,
+    };
+  };
+
+  const timeBadge = getTimeBadge(auction.timeLeft);
 
   return (
     <Link
@@ -27,13 +63,9 @@ export default function AuctionCard({ auction }) {
         </div>
         <div className="absolute top-3 right-3">
           <span
-            className={`text-[11px] font-medium px-2.5 py-1 rounded-full shadow-sm ${
-              isActive
-                ? "bg-emerald-500/90 text-white"
-                : "bg-gray-700/80 text-white"
-            }`}
+            className={`text-[11px] px-2.5 py-1 rounded-full backdrop-blur-sm ${timeBadge.className}`}
           >
-            {isActive ? `${daysLeft}d left` : "Ended"}
+            {timeBadge.label}
           </span>
         </div>
       </div>

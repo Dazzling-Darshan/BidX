@@ -9,8 +9,11 @@ export const handleUserLogin = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     return res.status(400).json({ error: "All Fields are required" });
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     //  Checking user exists — use same message to prevent user enumeration
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password" });
@@ -73,8 +76,10 @@ export const handleUserSignup = async (req, res) => {
       .json({ error: "Password must be at least 8 characters long" });
   }
 
+  const normalizedEmail = String(email).trim().toLowerCase();
+
   try {
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     // Checking existing of user
     if (existingUser)
@@ -90,8 +95,8 @@ export const handleUserSignup = async (req, res) => {
 
     // Saving user to database
     const newUser = new User({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
       avatar: "https://avatar.iran.liara.run/public/7",
       ipAddress: ip,

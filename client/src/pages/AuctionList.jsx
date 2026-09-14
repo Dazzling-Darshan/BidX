@@ -1,16 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import AuctionCard from "../components/AuctionCard";
 import { useGetAuctions } from "../hooks/useAuction";
 import LoadingScreen from "../components/LoadingScreen";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
+const CATEGORIES = [
+  "all",
+  "Electronics",
+  "Antiques",
+  "Art",
+  "Books",
+  "Clothing",
+  "Collectibles",
+  "Home & Garden",
+  "Jewelry",
+  "Musical Instruments",
+  "Sports",
+  "Toys",
+  "Vehicles",
+  "Other",
+];
+
 export const AuctionList = () => {
   useDocumentTitle("Browse Auctions");
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const navigate = useNavigate();
-  const { data, isLoading } = useGetAuctions(page);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const { data, isLoading } = useGetAuctions(page, filter, debouncedSearch);
 
   if (isLoading) return <LoadingScreen />;
 
@@ -18,14 +46,10 @@ export const AuctionList = () => {
   const auctions = Array.isArray(rawData) ? rawData : rawData.auctions || [];
   const pagination = Array.isArray(rawData) ? {} : rawData.pagination || {};
 
-  const categories = [
-    "all",
-    ...new Set(auctions?.map((auction) => auction.itemCategory)),
-  ];
-  const filteredAuctions =
-    filter === "all"
-      ? auctions
-      : auctions?.filter((auction) => auction.itemCategory === filter);
+  const handleCategoryChange = (cat) => {
+    setFilter(cat);
+    setPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/80">
@@ -33,7 +57,7 @@ export const AuctionList = () => {
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition mb-6 group"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition mb-6 group cursor-pointer"
         >
           <svg
             className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
@@ -52,23 +76,58 @@ export const AuctionList = () => {
         </button>
 
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Auctions</h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Browse {pagination.total || 0} active listings
-          </p>
+        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Auctions</h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Browse {pagination.total || 0} active listings
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative w-full md:w-80">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search auctions..."
+              className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition shadow-sm"
+            />
+            <svg
+              className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+        <div className="mb-6 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex flex-nowrap sm:flex-wrap gap-2">
+            {CATEGORIES.map((category) => (
               <button
                 key={category}
-                onClick={() => setFilter(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                onClick={() => handleCategoryChange(category)}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   filter === category
-                    ? "bg-indigo-600 text-white shadow-sm"
+                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
                     : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:text-gray-900"
                 }`}
               >
@@ -79,13 +138,25 @@ export const AuctionList = () => {
         </div>
 
         {/* Results count */}
-        <div className="mb-5">
-          <p className="text-sm text-gray-400">
-            {filter === "all" ? "All auctions" : filter}
-            <span className="ml-1 text-gray-300">
-              ({filteredAuctions.length})
-            </span>
+        <div className="mb-5 flex items-center justify-between text-xs text-gray-400">
+          <p>
+            Showing {auctions.length} of {pagination.total || 0} listings
+            {filter !== "all" && ` in ${filter}`}
+            {debouncedSearch && ` matching "${debouncedSearch}"`}
           </p>
+          {(filter !== "all" || debouncedSearch) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilter("all");
+                setSearchTerm("");
+                setPage(1);
+              }}
+              className="text-indigo-600 hover:underline cursor-pointer"
+            >
+              Reset filters
+            </button>
+          )}
         </div>
 
         {filteredAuctions.length === 0 ? (

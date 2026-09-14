@@ -9,10 +9,10 @@ import {
   dashboardStats,
 } from "../services/auction.service.js";
 
-export const useGetAuctions = (page = 1) => {
+export const useGetAuctions = (page = 1, category = "all", search = "") => {
   return useQuery({
-    queryKey: ["auctions", page],
-    queryFn: () => getAuctions({ page }),
+    queryKey: ["auctions", page, category, search],
+    queryFn: () => getAuctions({ page, category, search }),
     keepPreviousData: true,
   });
 };
