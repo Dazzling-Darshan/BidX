@@ -1,9 +1,17 @@
 import { useRef, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useSelector } from "react-redux";
-import { useViewAuction, usePlaceBid } from "../hooks/useAuction.js";
+import {
+  useViewAuction,
+  usePlaceBid,
+  useSimilarAuctions,
+  useWatchlist,
+  useToggleWatchlist,
+  useDeleteAuction,
+} from "../hooks/useAuction.js";
 import { useSocket } from "../hooks/useSocket.js";
 import LoadingScreen from "../components/LoadingScreen.jsx";
+import AuctionCard from "../components/AuctionCard.jsx";
 import toast from "react-hot-toast";
 import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 
@@ -22,7 +30,25 @@ export const ViewAuction = () => {
   });
 
   const { data: fetchedData, isLoading, isError, error: queryError } = useViewAuction(id);
+  const { data: similarData } = useSimilarAuctions(id);
+  const similarAuctions = similarData?.similarAuctions || [];
   const { mutateAsync: placeBidMutation } = usePlaceBid();
+  const { data: watchlistData } = useWatchlist();
+  const { mutate: toggleWatchlistMutate, isPending: isTogglingWatchlist } =
+    useToggleWatchlist();
+  const { mutate: deleteAuctionMutate, isPending: isDeleting } =
+    useDeleteAuction({
+      onSuccess: () => {
+        toast.success("Auction deleted successfully");
+        navigate("/myauction");
+      },
+      onError: (err) => {
+        toast.error(err?.response?.data?.message || "Failed to delete auction");
+      },
+    });
+
+  const isWatchlisted = (watchlistData?.watchlistIds || []).includes(id);
+
   const { activeUsers, liveAuction, socketError, isConnected } = useSocket(
     id,
     currentUserId,
@@ -169,32 +195,116 @@ export const ViewAuction = () => {
   return (
     <div className="min-h-screen bg-gray-50/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        {/* Back Button */}
-        <button
-          onClick={() => {
-            if (document.startViewTransition) {
-              document.startViewTransition(() => navigate(-1));
-            } else {
-              navigate(-1);
-            }
-          }}
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition mb-6 group"
-        >
-          <svg
-            className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        {/* Top Navigation & Actions */}
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <button
+            onClick={() => {
+              if (document.startViewTransition) {
+                document.startViewTransition(() => navigate(-1));
+              } else {
+                navigate(-1);
+              }
+            }}
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition group cursor-pointer"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Back
-        </button>
+            <svg
+              className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back
+          </button>
+
+          <div className="flex items-center gap-2.5">
+            {/* Watchlist Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                toggleWatchlistMutate(id, {
+                  onSuccess: (res) => {
+                    toast.success(
+                      res?.isWatchlisted
+                        ? "Saved to Watchlist!"
+                        : "Removed from Watchlist",
+                      {
+                        icon: res?.isWatchlisted ? "❤️" : "🤍",
+                        duration: 2500,
+                      },
+                    );
+                  },
+                  onError: () => toast.error("Failed to update watchlist"),
+                });
+              }}
+              disabled={isTogglingWatchlist}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                isWatchlisted
+                  ? "bg-rose-50 border-rose-200 text-rose-600 shadow-sm"
+                  : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <svg
+                className={`w-4 h-4 ${
+                  isWatchlisted
+                    ? "fill-rose-500 text-rose-500"
+                    : "fill-none text-gray-500"
+                }`}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={isWatchlisted ? 0 : 2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                />
+              </svg>
+              {isWatchlisted ? "In Watchlist" : "Add to Watchlist"}
+            </button>
+
+            {/* Seller / Admin Delete Listing Button (if 0 bids placed) */}
+            {((isSeller && (!data.bids || data.bids.length === 0)) ||
+              user?.user?.role === "admin") && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to delete this auction listing? This cannot be undone.",
+                    )
+                  ) {
+                    deleteAuctionMutate(id);
+                  }
+                }}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 transition cursor-pointer"
+                title="Cancel/Delete Listing"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                {isDeleting ? "Deleting..." : "Delete Listing"}
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left — Image + Bid History */}
@@ -532,6 +642,35 @@ export const ViewAuction = () => {
           </h3>
           <BidHistoryList />
         </div>
+
+        {/* Similar Auctions (Gemini Vector Embeddings) */}
+        {similarAuctions.length > 0 && (
+          <section className="mt-14 pt-10 border-t border-gray-200/80">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm shadow-indigo-200">
+                <span className="text-lg">✨</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Similar Auctions You Might Like
+                  </h2>
+                  <span className="inline-flex text-[10px] uppercase font-bold tracking-wider bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                    AI Semantic Match
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Matches calculated using Gemini vector embeddings and cosine similarity
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {similarAuctions.map((sim) => (
+                <AuctionCard key={sim._id} auction={sim} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

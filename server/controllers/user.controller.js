@@ -2,6 +2,7 @@ import Login from "../models/login.model.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
+import { cloudinary } from "../services/cloudinaryService.js";
 
 export const handleGetUser = async (req, res) => {
   try {
@@ -15,6 +16,73 @@ export const handleGetUser = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateAvatar = async (req, res) => {
+  try {
+    const { avatar } = req.body;
+    if (!avatar) {
+      return res.status(400).json({ error: "Avatar image data is required" });
+    }
+
+    const uploadRes = await cloudinary.uploader.upload(avatar, {
+      folder: "auction_avatars",
+      transformation: [{ width: 300, height: 300, crop: "fill", gravity: "face" }],
+    });
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.avatar = uploadRes.secure_url;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Avatar updated successfully",
+      avatar: user.avatar,
+    });
+  } catch (err) {
+    console.error("Error updating avatar:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Failed to update avatar" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Name is required" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.name = name.trim();
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Failed to update profile" });
   }
 };
 

@@ -70,7 +70,13 @@ const initialState = {
 const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    updateUser: (state, action) => {
+      if (state.user?.user) {
+        state.user.user = { ...state.user.user, ...action.payload };
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       // checkAuth
@@ -130,4 +136,5 @@ const authSlice = createSlice({
   },
 });
 
+export const { updateUser } = authSlice.actions;
 export default authSlice.reducer;

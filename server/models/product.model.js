@@ -63,6 +63,11 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    embedding: {
+      type: [Number],
+      select: false,
+      default: [],
+    },
   },
   { timestamps: true },
 );

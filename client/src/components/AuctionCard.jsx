@@ -1,8 +1,34 @@
 import { Link } from "react-router";
-import { usePrefetchHandlers } from "../hooks/useAuction.js";
+import {
+  usePrefetchHandlers,
+  useWatchlist,
+  useToggleWatchlist,
+} from "../hooks/useAuction.js";
+import toast from "react-hot-toast";
 
-export default function AuctionCard({ auction }) {
+export default function AuctionCard({ auction, isWatchlistedProp }) {
   const { prefetchAuction } = usePrefetchHandlers();
+  const { data: watchlistData } = useWatchlist();
+  const { mutate: toggleWatchlistMutate } = useToggleWatchlist();
+
+  const isFav =
+    isWatchlistedProp !== undefined
+      ? isWatchlistedProp
+      : (watchlistData?.watchlistIds || []).includes(auction._id);
+
+  const handleWatchlistToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWatchlistMutate(auction._id, {
+      onSuccess: (data) => {
+        toast.success(
+          data?.isWatchlisted ? "Saved to Watchlist!" : "Removed from Watchlist",
+          { icon: data?.isWatchlisted ? "❤️" : "🤍", duration: 2500 },
+        );
+      },
+      onError: () => toast.error("Failed to update watchlist"),
+    });
+  };
 
   const getTimeBadge = (timeLeftMs) => {
     if (!timeLeftMs || timeLeftMs <= 0) {
@@ -56,10 +82,15 @@ export default function AuctionCard({ auction }) {
           alt={auction.itemName}
           className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
         />
-        <div className="absolute top-3 left-3 flex items-center gap-2">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
           <span className="text-[11px] font-medium text-indigo-700 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-sm">
             {auction.itemCategory}
           </span>
+          {auction.bidsCount >= 5 && (
+            <span className="text-[10px] font-bold text-amber-800 bg-amber-300/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
+              🔥 Hot
+            </span>
+          )}
         </div>
         <div className="absolute top-3 right-3">
           <span
@@ -68,6 +99,26 @@ export default function AuctionCard({ auction }) {
             {timeBadge.label}
           </span>
         </div>
+
+        {/* Watchlist Floating Heart Button */}
+        <button
+          type="button"
+          onClick={handleWatchlistToggle}
+          className={`absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-200 shadow-sm ${
+            isFav
+              ? "bg-rose-500 text-white shadow-rose-200 scale-105"
+              : "bg-white/85 text-gray-400 hover:text-rose-500 hover:bg-white hover:scale-110"
+          }`}
+          title={isFav ? "Remove from watchlist" : "Add to watchlist"}
+          aria-label={isFav ? "Remove from watchlist" : "Add to watchlist"}
+        >
+          <svg
+            className="w-4 h-4 fill-current"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          </svg>
+        </button>
       </div>
 
       {/* Content */}

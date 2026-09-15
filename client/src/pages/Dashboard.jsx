@@ -1,7 +1,7 @@
 import AuctionCard from "../components/AuctionCard.jsx";
 import { Link } from "react-router";
 import LoadingScreen from "../components/LoadingScreen.jsx";
-import { useDashboardStats } from "../hooks/useAuction.js";
+import { useDashboardStats, useWatchlist } from "../hooks/useAuction.js";
 import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 
 const statConfig = [
@@ -73,6 +73,8 @@ const statConfig = [
 const Dashboard = () => {
   useDocumentTitle("Dashboard");
   const { data, isLoading } = useDashboardStats();
+  const { data: watchlistData } = useWatchlist();
+  const watchlistAuctions = watchlistData?.watchlist || [];
 
   if (isLoading) return <LoadingScreen />;
 
@@ -156,6 +158,32 @@ const Dashboard = () => {
             </div>
           )}
         </section>
+
+        {/* Your Watchlist */}
+        {watchlistAuctions.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Your Watchlist
+                </h2>
+                <span className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  ❤️ {watchlistAuctions.length} {watchlistAuctions.length === 1 ? "item" : "items"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {watchlistAuctions.map((auction) => (
+                <AuctionCard
+                  key={auction._id}
+                  auction={auction}
+                  isWatchlistedProp={true}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Your Auctions */}
         <section>

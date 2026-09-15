@@ -8,6 +8,9 @@ export const registerAuctionHandlers = (io, socket) => {
   const userId = socket.user.id;
   const userName = socket.user.name;
 
+  // Join user's personal channel for private notifications (e.g. outbid alerts)
+  socket.join(`user:${userId}`);
+
   // Join auction room
   socket.on("auction:join", ({ auctionId }) => {
     if (!auctionId) return;
@@ -87,6 +90,13 @@ export const registerAuctionHandlers = (io, socket) => {
         return;
       }
 
+      // Identify displaced leading bidder to notify them
+      const previousLeadingBid =
+        product.bids && product.bids.length > 0
+          ? product.bids[product.bids.length - 1]
+          : null;
+      const previousLeadingBidderId = previousLeadingBid?.bidder?.toString();
+
       // Use findOneAndUpdate with price condition to prevent race conditions
       const updatedProduct = await Product.findOneAndUpdate(
         {
@@ -127,6 +137,19 @@ export const registerAuctionHandlers = (io, socket) => {
         bidAmount: amount,
         message: `${userName} placed a bid of Rs ${amount}`,
       });
+
+      // Emit outbid notification to displaced bidder if they are not the current bidder
+      if (
+        previousLeadingBidderId &&
+        previousLeadingBidderId !== userId
+      ) {
+        io.to(`user:${previousLeadingBidderId}`).emit("auction:outbid", {
+          auctionId,
+          itemName: product.itemName,
+          newAmount: amount,
+          outbidBy: userName,
+        });
+      }
     } catch (error) {
       console.error("Socket bid error:", error.message);
       socket.emit("auction:error", {

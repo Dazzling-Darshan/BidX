@@ -7,13 +7,59 @@ import {
   placeBid,
   createAuction,
   dashboardStats,
+  getSimilarAuctions,
+  toggleWatchlist,
+  getWatchlist,
+  deleteAuction,
 } from "../services/auction.service.js";
 
-export const useGetAuctions = (page = 1, category = "all", search = "") => {
+export const useGetAuctions = (
+  page = 1,
+  category = "all",
+  search = "",
+  sortBy = "endingSoon",
+  status = "active",
+) => {
   return useQuery({
-    queryKey: ["auctions", page, category, search],
-    queryFn: () => getAuctions({ page, category, search }),
+    queryKey: ["auctions", page, category, search, sortBy, status],
+    queryFn: () => getAuctions({ page, category, search, sortBy, status }),
     keepPreviousData: true,
+  });
+};
+
+export const useWatchlist = (page = 1) => {
+  return useQuery({
+    queryKey: ["watchlist", page],
+    queryFn: () => getWatchlist({ page }),
+    keepPreviousData: true,
+  });
+};
+
+export const useToggleWatchlist = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id) => toggleWatchlist(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["watchlist"]);
+      queryClient.invalidateQueries(["auctions"]);
+    },
+  });
+};
+
+export const useDeleteAuction = (options = {}) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id) => deleteAuction(id),
+    onSuccess: (...args) => {
+      queryClient.invalidateQueries(["auctions"]);
+      queryClient.invalidateQueries(["myAuctions"]);
+      queryClient.invalidateQueries(["watchlist"]);
+      queryClient.invalidateQueries(["dashboardStats"]);
+      options.onSuccess?.(...args);
+    },
+    onError: options.onError,
   });
 };
 
@@ -38,6 +84,15 @@ export const useViewAuction = (id) => {
     queryKey: ["auction", id],
     queryFn: () => viewAuction(id),
     enabled: !!id,
+  });
+};
+
+export const useSimilarAuctions = (id) => {
+  return useQuery({
+    queryKey: ["similarAuctions", id],
+    queryFn: () => getSimilarAuctions(id),
+    enabled: !!id,
+    staleTime: 60_000,
   });
 };
 

@@ -21,7 +21,33 @@ import {
 import { RiAuctionLine } from "react-icons/ri";
 import { HiOutlineMenuAlt3 } from "react-icons/hi";
 import { FiTarget } from "react-icons/fi";
-import BidXLogo from "../assets/BidXLogo.png";
+import BidXLogo from "./BidXLogo.jsx";
+
+const UserAvatar = ({ avatar, name, size = "w-7 h-7", textSize = "text-xs" }) => {
+  const [error, setError] = useState(false);
+  const initial = name?.charAt(0)?.toUpperCase() || "U";
+
+  if (avatar && !error) {
+    return (
+      <div className={`${size} rounded-full overflow-hidden shrink-0 bg-indigo-50 border border-gray-100`}>
+        <img
+          src={avatar}
+          alt={name || "User"}
+          onError={() => setError(true)}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${size} rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center ${textSize} font-bold text-white shrink-0 shadow-xs`}
+    >
+      {initial}
+    </div>
+  );
+};
 
 export const Navbar = () => {
   const dispatch = useDispatch();
@@ -78,15 +104,8 @@ export const Navbar = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex justify-between items-center h-16">
               {/* Logo */}
-              <Link to="/" className="flex items-center gap-2.5 group">
-                <img
-                  src={BidXLogo}
-                  alt="BidX Logo"
-                  className="h-10 w-10 object-contain"
-                />
-                <span className="text-lg font-bold text-gray-900 tracking-tight">
-                  BidX
-                </span>
+              <Link to="/" className="flex items-center group">
+                <BidXLogo size="md" />
               </Link>
 
               {/* Desktop Navigation — main links only */}
@@ -130,9 +149,12 @@ export const Navbar = () => {
                         }`
                       }
                     >
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
-                        {user.user.name?.charAt(0)?.toUpperCase()}
-                      </div>
+                      <UserAvatar
+                        avatar={user.user.avatar}
+                        name={user.user.name}
+                        size="w-7 h-7"
+                        textSize="text-xs"
+                      />
                       {user.user.name?.split(" ")[0]}
                     </NavLink>
                     <button
@@ -178,17 +200,10 @@ export const Navbar = () => {
         <div className="flex justify-between items-center px-5 h-16 border-b border-gray-100">
           <Link
             to="/"
-            className="flex items-center gap-2.5"
+            className="flex items-center group"
             onClick={() => setIsMenuOpen(false)}
           >
-            <img
-              src={BidXLogo}
-              alt="BidX Logo"
-              className="h-10 w-10 object-contain"
-            />
-            <span className="text-lg font-bold text-gray-900 tracking-tight">
-              BidX
-            </span>
+            <BidXLogo size="md" />
           </Link>
           <button
             onClick={() => setIsMenuOpen(false)}
@@ -203,19 +218,12 @@ export const Navbar = () => {
         {user && (
           <div className="px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
-                {user.user.avatar ? (
-                  <img
-                    src={user.user.avatar}
-                    alt={user.user.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-sm font-bold text-indigo-600">
-                    {user.user.name?.charAt(0)?.toUpperCase()}
-                  </span>
-                )}
-              </div>
+              <UserAvatar
+                avatar={user.user.avatar}
+                name={user.user.name}
+                size="h-10 w-10"
+                textSize="text-sm"
+              />
               <div className="min-w-0">
                 <p className="font-semibold text-gray-900 text-sm truncate">
                   {user.user.name}

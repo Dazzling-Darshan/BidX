@@ -98,7 +98,7 @@ export const handleUserSignup = async (req, res) => {
       name: name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
-      avatar: "https://avatar.iran.liara.run/public/7",
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name.trim())}`,
       ipAddress: ip,
       userAgent,
       location,

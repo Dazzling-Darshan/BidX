@@ -8,6 +8,10 @@ import {
   myAuction,
   myBids,
   generateAuctionAIListing,
+  getSimilarAuctions,
+  toggleWatchlist,
+  getWatchlist,
+  deleteAuction,
 } from "../controllers/auction.controller.js";
 import { secureRoute } from "../middleware/auth.middleware.js";
 
@@ -21,12 +25,16 @@ auctionRoutes.get("/stats", dashboardData);
 auctionRoutes
   .route("/")
   .get(showAuction)
-  .post( createAuction);
+  .post(createAuction);
 
 auctionRoutes.get("/myauction", myAuction);
 auctionRoutes.get("/mybids", myBids);
+auctionRoutes.get("/watchlist", getWatchlist);
 
+auctionRoutes.get("/:id/similar", getSimilarAuctions);
+auctionRoutes.post("/:id/watchlist", toggleWatchlist);
 auctionRoutes.get("/:id", auctionById);
 auctionRoutes.post("/:id/bid", placeBid);
+auctionRoutes.delete("/:id", deleteAuction);
 
 export default auctionRoutes;

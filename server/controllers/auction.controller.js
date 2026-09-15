@@ -1,9 +1,14 @@
-import getImageUrl from "../services/cloudinaryService.js";
+import getImageUrl, { cloudinary } from "../services/cloudinaryService.js";
 import Product from "../models/product.model.js";
+import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import { getIO } from "../socket/index.js";
 import Upload from "../models/upload.model.js";
-import { analyzeAuctionImage } from "../services/gemini.service.js";
+import {
+  analyzeAuctionImage,
+  generateTextEmbedding,
+  cosineSimilarity,
+} from "../services/gemini.service.js";
 
 export const createAuction = async (req, res) => {
   try {
@@ -41,6 +46,18 @@ export const createAuction = async (req, res) => {
       });
     }
 
+    // Generate vector embedding for semantic search / similarity
+    let embedding = [];
+    try {
+      const textToEmbed = `${itemName}. Category: ${itemCategory}. ${itemDescription}`;
+      embedding = await generateTextEmbedding(textToEmbed);
+    } catch (embErr) {
+      console.error(
+        "Embedding generation failed (continuing without embedding):",
+        embErr.message,
+      );
+    }
+
     const newAuction = new Product({
       itemName,
       startingPrice,
@@ -54,6 +71,7 @@ export const createAuction = async (req, res) => {
       itemStartDate: start,
       itemEndDate: end,
       seller: req.user.id,
+      embedding,
     });
     await newAuction.save();
 
@@ -75,9 +93,19 @@ export const showAuction = async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
     const skip = (page - 1) * limit;
-    const { category, search } = req.query;
+    const { category, search, sortBy, status } = req.query;
 
-    const filter = { itemEndDate: { $gt: new Date() } };
+    const now = new Date();
+    const filter = {};
+
+    if (status === "endingSoon") {
+      filter.itemEndDate = {
+        $gt: now,
+        $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      };
+    } else {
+      filter.itemEndDate = { $gt: now };
+    }
 
     if (category && category.toLowerCase() !== "all") {
       filter.itemCategory = category;
@@ -93,26 +121,43 @@ export const showAuction = async (req, res) => {
 
     const total = await Product.countDocuments(filter);
 
-    const auction = await Product.find(filter)
+    let query = Product.find(filter)
       .populate("seller", "name")
       .select(
-        "itemName itemDescription currentPrice bids itemEndDate itemCategory itemImage seller",
-      )
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+        "itemName itemDescription currentPrice startingPrice bids itemEndDate itemCategory itemImage seller createdAt",
+      );
 
-    const formatted = auction.map((item) => ({
+    if (sortBy === "endingSoon") {
+      query = query.sort({ itemEndDate: 1 });
+    } else if (sortBy === "priceAsc") {
+      query = query.sort({ currentPrice: 1 });
+    } else if (sortBy === "priceDesc") {
+      query = query.sort({ currentPrice: -1 });
+    } else if (sortBy === "newest") {
+      query = query.sort({ createdAt: -1 });
+    } else {
+      query = query.sort({ itemEndDate: 1 });
+    }
+
+    const auction = await query.skip(skip).limit(limit);
+
+    let formatted = auction.map((item) => ({
       _id: item._id,
       itemName: item.itemName,
       itemDescription: item.itemDescription,
       currentPrice: item.currentPrice,
+      startingPrice: item.startingPrice,
       bidsCount: item.bids.length,
-      timeLeft: Math.max(0, new Date(item.itemEndDate) - new Date()),
+      timeLeft: Math.max(0, new Date(item.itemEndDate) - now),
       itemCategory: item.itemCategory,
       sellerName: item.seller?.name || "Unknown",
       itemPhoto: item.itemImage?.url,
+      itemEndDate: item.itemEndDate,
     }));
+
+    if (sortBy === "mostBids") {
+      formatted.sort((a, b) => b.bidsCount - a.bidsCount);
+    }
 
     res.status(200).json({
       auctions: formatted,
@@ -452,3 +497,266 @@ export const generateAuctionAIListing = async (req, res) => {
     });
   }
 };
+
+export const getSimilarAuctions = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentProduct = await Product.findById(id).select(
+      "+embedding itemCategory itemName",
+    );
+    if (!currentProduct) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    const now = new Date();
+    // Fetch active candidate auctions excluding the current one
+    let candidateAuctions = await Product.find({
+      _id: { $ne: currentProduct._id },
+      itemEndDate: { $gt: now },
+    })
+      .select(
+        "+embedding itemName itemDescription currentPrice startingPrice bids itemEndDate itemCategory itemImage seller",
+      )
+      .populate("seller", "name")
+      .limit(40);
+
+    // If no future active auctions exist (e.g. test or demo database), fall back to other items
+    if (candidateAuctions.length === 0) {
+      candidateAuctions = await Product.find({
+        _id: { $ne: currentProduct._id },
+      })
+        .select(
+          "+embedding itemName itemDescription currentPrice startingPrice bids itemEndDate itemCategory itemImage seller",
+        )
+        .populate("seller", "name")
+        .limit(40);
+    }
+
+    let scored = [];
+    const hasCurrentEmbedding =
+      Array.isArray(currentProduct.embedding) &&
+      currentProduct.embedding.length > 0;
+
+    if (hasCurrentEmbedding) {
+      scored = candidateAuctions.map((item) => {
+        let score = 0;
+        if (
+          Array.isArray(item.embedding) &&
+          item.embedding.length === currentProduct.embedding.length
+        ) {
+          score = cosineSimilarity(currentProduct.embedding, item.embedding);
+        } else if (item.itemCategory === currentProduct.itemCategory) {
+          score = 0.45; // baseline category match score
+        }
+        return { item, score };
+      });
+      scored.sort((a, b) => b.score - a.score);
+    } else {
+      // Fallback: match by category
+      scored = candidateAuctions
+        .map((item) => ({
+          item,
+          score: item.itemCategory === currentProduct.itemCategory ? 1 : 0,
+        }))
+        .sort((a, b) => b.score - a.score);
+    }
+
+    const topSimilar = scored.slice(0, 4).map(({ item }) => ({
+      _id: item._id,
+      itemName: item.itemName,
+      itemDescription: item.itemDescription,
+      currentPrice: item.currentPrice,
+      startingPrice: item.startingPrice,
+      bidsCount: item.bids?.length || 0,
+      timeLeft: Math.max(0, new Date(item.itemEndDate) - now),
+      itemCategory: item.itemCategory,
+      sellerName: item.seller?.name || "Unknown",
+      itemPhoto: item.itemImage?.url,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      similarAuctions: topSimilar,
+    });
+  } catch (error) {
+    console.error("Error finding similar auctions:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Error finding similar auctions",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Toggle an auction in the authenticated user's watchlist
+ */
+export const toggleWatchlist = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const auction = await Product.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!Array.isArray(user.watchlist)) {
+      user.watchlist = [];
+    }
+
+    const index = user.watchlist.findIndex(
+      (itemId) => itemId.toString() === id,
+    );
+
+    let isWatchlisted = false;
+    if (index > -1) {
+      user.watchlist.splice(index, 1);
+      isWatchlisted = false;
+    } else {
+      user.watchlist.push(id);
+      isWatchlisted = true;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      isWatchlisted,
+      watchlist: user.watchlist,
+      message: isWatchlisted
+        ? "Added to your watchlist"
+        : "Removed from your watchlist",
+    });
+  } catch (error) {
+    console.error("Watchlist toggle error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating watchlist",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get all auctions in the user's watchlist
+ */
+export const getWatchlist = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
+
+    const user = await User.findById(userId).populate({
+      path: "watchlist",
+      populate: { path: "seller", select: "name" },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const rawList = (user.watchlist || []).filter(Boolean);
+    const total = rawList.length;
+    const paginated = rawList.slice((page - 1) * limit, page * limit);
+
+    const now = new Date();
+    const formatted = paginated.map((item) => ({
+      _id: item._id,
+      itemName: item.itemName,
+      itemDescription: item.itemDescription,
+      currentPrice: item.currentPrice,
+      startingPrice: item.startingPrice,
+      bidsCount: item.bids?.length || 0,
+      timeLeft: Math.max(0, new Date(item.itemEndDate) - now),
+      itemCategory: item.itemCategory,
+      sellerName: item.seller?.name || "Unknown",
+      itemPhoto: item.itemImage?.url,
+      itemEndDate: item.itemEndDate,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      watchlist: formatted,
+      watchlistIds: rawList.map((item) => item._id),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching watchlist:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching watchlist",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Safe deletion of an auction (Sellers allowed if 0 bids; Admins allowed unconditionally)
+ */
+export const deleteAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const auction = await Product.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    const isSeller = auction.seller.toString() === userId;
+    const isAdmin = userRole === "admin";
+
+    if (!isSeller && !isAdmin) {
+      return res.status(403).json({
+        message: "You are not authorized to delete this auction.",
+      });
+    }
+
+    // Sellers cannot delete auctions that have bids
+    if (isSeller && !isAdmin && auction.bids && auction.bids.length > 0) {
+      return res.status(400).json({
+        message: "Cannot delete an auction that already has active bids.",
+      });
+    }
+
+    // Clean up image from Cloudinary if possible
+    if (auction.itemImage?.public_id) {
+      try {
+        await cloudinary.uploader.destroy(auction.itemImage.public_id);
+      } catch (cloudErr) {
+        console.warn("Cloudinary delete warning:", cloudErr.message);
+      }
+    }
+
+    await Product.findByIdAndDelete(id);
+
+    // Remove from any watchlists
+    await User.updateMany({ watchlist: id }, { $pull: { watchlist: id } });
+
+    return res.status(200).json({
+      success: true,
+      message: "Auction deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting auction:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error deleting auction",
+      error: error.message,
+    });
+  }
+};
+
+

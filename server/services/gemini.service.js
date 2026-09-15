@@ -63,7 +63,7 @@ export const analyzeAuctionImage = async (imageUrl) => {
 
   const genAI = getGenAI();
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-3.6-flash",
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.3,
@@ -132,3 +132,47 @@ ${JSON.stringify(ALLOWED_CATEGORIES)}
     itemDescription: parsed.itemDescription || "No description provided.",
   };
 };
+
+/**
+ * Generate vector embedding for text using Google Gemini gemini-embedding-001
+ */
+export const generateTextEmbedding = async (text) => {
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return [];
+  }
+
+  const genAI = getGenAI();
+  const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+  const result = await model.embedContent(text.trim());
+  return result.embedding?.values || [];
+};
+
+/**
+ * Calculate cosine similarity between two vector float arrays
+ * Returns a value between -1.0 and 1.0 (typically 0.0 to 1.0 for normalized text embeddings)
+ */
+export const cosineSimilarity = (vecA, vecB) => {
+  if (
+    !vecA ||
+    !vecB ||
+    vecA.length === 0 ||
+    vecB.length === 0 ||
+    vecA.length !== vecB.length
+  ) {
+    return 0;
+  }
+
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+

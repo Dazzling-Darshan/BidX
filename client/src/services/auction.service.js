@@ -7,10 +7,17 @@ export const getAuctions = async ({
   limit = 12,
   category = "all",
   search = "",
+  sortBy = "endingSoon",
+  status = "active",
 } = {}) => {
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
   if (category && category !== "all") params.append("category", category);
   if (search && search.trim()) params.append("search", search.trim());
+  if (sortBy) params.append("sortBy", sortBy);
+  if (status && status !== "active") params.append("status", status);
 
   const res = await api.get(`/auction?${params.toString()}`);
   return res.data;
@@ -108,3 +115,29 @@ export const generateAIListingDetails = async ({ imageUrl }) => {
   const res = await api.post(`/auction/ai-generate`, { imageUrl });
   return res.data;
 };
+
+// get semantically similar auctions using vector embeddings
+export const getSimilarAuctions = async (id) => {
+  const res = await api.get(`/auction/${id}/similar`);
+  return res.data;
+};
+
+// toggle watchlist status for an auction
+export const toggleWatchlist = async (id) => {
+  const res = await api.post(`/auction/${id}/watchlist`);
+  return res.data;
+};
+
+// get current user's watchlisted auctions
+export const getWatchlist = async ({ page = 1, limit = 12 } = {}) => {
+  const res = await api.get(`/auction/watchlist?page=${page}&limit=${limit}`);
+  return res.data;
+};
+
+// delete/cancel an auction (0-bid seller or admin)
+export const deleteAuction = async (id) => {
+  const res = await api.delete(`/auction/${id}`);
+  return res.data;
+};
+
+

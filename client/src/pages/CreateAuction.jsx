@@ -96,6 +96,24 @@ export const CreateAuction = () => {
     setError("");
   };
 
+  const handleDurationPreset = (days) => {
+    const now = new Date();
+    const startDateStr = now.toISOString().split("T")[0];
+    const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    const endDateStr = endDate.toISOString().split("T")[0];
+
+    setFormData((prev) => ({
+      ...prev,
+      itemStartDate: startDateStr,
+      itemEndDate: endDateStr,
+    }));
+    setError("");
+    toast.success(`Set duration to ${days} ${days === 1 ? "day" : "days"}`, {
+      icon: "⏱️",
+      duration: 2000,
+    });
+  };
+
   const clearUploadedImage = () => {
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current);
@@ -463,6 +481,28 @@ export const CreateAuction = () => {
                       required
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Duration Presets */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Quick Duration Presets
+                  </label>
+                  <span className="text-xs text-indigo-600 font-medium">1-click select</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {[1, 3, 5, 7].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => handleDurationPreset(days)}
+                      className="py-2 px-3 text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/50 hover:text-indigo-600 transition cursor-pointer text-gray-700 shadow-sm text-center active:scale-95"
+                    >
+                      {days} {days === 1 ? "Day" : "Days"}
+                    </button>
+                  ))}
                 </div>
               </div>
 
