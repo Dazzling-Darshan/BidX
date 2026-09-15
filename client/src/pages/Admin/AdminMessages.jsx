@@ -14,7 +14,6 @@ import {
   MdOutlineMarkEmailUnread,
   MdOutlineDelete,
   MdOutlineSearch,
-  MdOutlineReply,
   MdClose,
   MdOutlineFilterList,
 } from "react-icons/md";
@@ -110,7 +109,7 @@ export const AdminMessages = () => {
             Customer Inquiries
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Read, respond to, and manage contact requests submitted by users
+            Review and manage contact requests submitted by platform users
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -360,26 +359,14 @@ export const AdminMessages = () => {
             </div>
 
             {/* Sender Info Card */}
-            <div className="my-4 p-3.5 rounded-xl bg-gray-50 border border-gray-200/70 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-400">From</p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {selectedMessage.name}
-                </p>
-                <a
-                  href={`mailto:${selectedMessage.email}`}
-                  className="text-xs text-indigo-600 hover:underline"
-                >
-                  {selectedMessage.email}
-                </a>
-              </div>
-              <a
-                href={`mailto:${selectedMessage.email}?subject=Re: ${encodeURIComponent(selectedMessage.subject)}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition"
-              >
-                <MdOutlineReply className="w-4 h-4" />
-                Reply
-              </a>
+            <div className="my-4 p-3.5 rounded-xl bg-gray-50 border border-gray-200/70">
+              <p className="text-xs text-gray-400">From</p>
+              <p className="text-sm font-semibold text-gray-800">
+                {selectedMessage.name}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {selectedMessage.email}
+              </p>
             </div>
 
             {/* Message Body */}

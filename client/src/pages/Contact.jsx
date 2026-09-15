@@ -218,7 +218,7 @@ export const Contact = () => {
                     Message Sent Successfully!
                   </h2>
                   <p className="text-gray-500 max-w-sm mx-auto mb-6 text-sm">
-                    Thank you for reaching out. Our support team has logged your inquiry and will reply to your email address shortly.
+                    Thank you for reaching out. Your message has been recorded and delivered to the platform administration.
                   </p>
                   <button
                     onClick={() => setSubmitted(false)}
