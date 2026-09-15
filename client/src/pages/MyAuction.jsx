@@ -20,7 +20,7 @@ export const MyAuction = () => {
 
   const categories = [
     "all",
-    ...new Set(auctions?.map((auction) => auction.itemCategory)),
+    ...new Set(auctions?.map((auction) => auction.itemCategory).filter(Boolean)),
   ];
   const filteredAuctions =
     filter === "all"

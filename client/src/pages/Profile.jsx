@@ -19,7 +19,7 @@ import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { updateUser } from "../store/auth/authSlice";
 
 export default function Profile() {
-  useDocumentTitle("Profile Settings | BidX");
+  useDocumentTitle("Profile Settings");
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
@@ -182,10 +182,10 @@ export default function Profile() {
             <div className="absolute inset-0 bg-black/5" />
           </div>
 
-          <div className="px-6 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-16 sm:-mt-14">
+          <div className="px-6 pb-6 pt-3 relative flex flex-col sm:flex-row items-center sm:items-center justify-between gap-4">
             {/* Avatar with Upload button */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
-              <div className="relative group">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5">
+              <div className="relative group -mt-16 sm:-mt-14 shrink-0">
                 <div className="h-28 w-28 rounded-full ring-4 ring-white shadow-md bg-gray-100 overflow-hidden relative">
                   {avatarPreview && !imgError ? (
                     <img
@@ -232,7 +232,7 @@ export default function Profile() {
               </div>
 
               {/* User text details */}
-              <div className="text-center sm:text-left pt-2">
+              <div className="text-center sm:text-left pt-1 sm:pt-0">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
                   <h2 className="text-xl font-bold text-gray-900">
                     {user?.user?.name || "User"}
@@ -244,23 +244,25 @@ export default function Profile() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">{user?.user?.email}</p>
-                <div className="mt-1.5 flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
+                <p className="text-sm text-gray-500 mt-0.5">{user?.user?.email}</p>
+                <div className="mt-1 flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                   <span>Photo formats: JPG, PNG, WebP (Max 5MB)</span>
                 </div>
               </div>
             </div>
 
             {/* Quick action button to pick photo */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingAvatar}
-              className="px-4 py-2 text-xs font-semibold rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 shadow-xs cursor-pointer transition flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <CiCamera className="w-4 h-4 text-gray-600 stroke-[1]" />
-              {isUploadingAvatar ? "Uploading..." : "Change Photo"}
-            </button>
+            <div className="flex justify-center sm:justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 shadow-xs cursor-pointer transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <CiCamera className="w-4 h-4 text-gray-600 stroke-[1]" />
+                {isUploadingAvatar ? "Uploading..." : "Change Photo"}
+              </button>
+            </div>
           </div>
         </div>
 

@@ -243,6 +243,12 @@ export const placeBid = async (req, res) => {
         .status(400)
         .json({ message: `Bid must be at max Rs ${maxBid}` });
 
+    const previousLeadingBid =
+      product.bids && product.bids.length > 0
+        ? product.bids[product.bids.length - 1]
+        : null;
+    const previousLeadingBidderId = previousLeadingBid?.bidder?.toString();
+
     const updated = await Product.findOneAndUpdate(
       {
         _id: id,
@@ -282,6 +288,16 @@ export const placeBid = async (req, res) => {
         bidderId: user,
         bidAmount,
       });
+
+      // Notify displaced leading bidder
+      if (previousLeadingBidderId && previousLeadingBidderId !== user) {
+        io.to(`user:${previousLeadingBidderId}`).emit("auction:outbid", {
+          auctionId: id,
+          itemName: product.itemName,
+          newAmount: bidAmount,
+          outbidBy: bidderName,
+        });
+      }
     } catch (socketErr) {
       console.error("Socket broadcast error:", socketErr.message);
     }
@@ -438,6 +454,18 @@ export const myBids = async (req, res) => {
 
     const formatted = auction.map((item) => {
       const isExpired = new Date(item.itemEndDate) < new Date();
+      let winner = null;
+      if (item.winner) {
+        winner = { _id: item.winner._id, name: item.winner.name };
+      } else if (isExpired && item.bids && item.bids.length > 0) {
+        const sorted = [...item.bids].sort((a, b) => b.bidAmount - a.bidAmount);
+        const topBid = sorted[0];
+        winner = {
+          _id: topBid.bidder?._id || topBid.bidder,
+          name: topBid.bidder?.name || "Winning Bidder",
+        };
+      }
+
       return {
         _id: item._id,
         itemName: item.itemName,
@@ -446,13 +474,11 @@ export const myBids = async (req, res) => {
         bidsCount: item.bids.length,
         timeLeft: Math.max(0, new Date(item.itemEndDate) - new Date()),
         itemCategory: item.itemCategory,
-        sellerName: item.seller.name,
+        sellerName: item.seller?.name || "Seller",
         itemPhoto: item.itemImage?.url,
         isExpired,
-        winner: item.winner
-          ? { _id: item.winner._id, name: item.winner.name }
-          : null,
-        isSold: item.isSold,
+        winner,
+        isSold: item.isSold || (isExpired && item.bids && item.bids.length > 0),
       };
     });
 

@@ -12,9 +12,12 @@ const Error = () => {
             But dont worry, you can find plenty of other things on our homepage.
           </p>
 
-          <button className="px-4 inline py-2 text-sm font-medium leading-5 shadow text-white transition-colors duration-150 border border-transparent rounded-lg focus:outline-none focus:shadow-outline-blue bg-blue-600 active:bg-blue-600 hover:bg-blue-700">
-            <Link to={"/"}>back to homepage</Link>
-          </button>
+          <Link
+            to="/"
+            className="inline-block px-5 py-2.5 text-sm font-semibold shadow-xs text-white transition-all duration-150 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:scale-95"
+          >
+            Back to Homepage
+          </Link>
         </div>
         <div className="max-w-lg">
           <svg

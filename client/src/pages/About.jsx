@@ -36,11 +36,14 @@ export const About = () => {
               </h2>
               <ul className="list-disc pl-6 space-y-2">
                 <li>User registration and authentication (JWT + httpOnly cookies)</li>
-                <li>Real-time auction bidding with Socket.io</li>
-                <li>Item listing and management with Cloudinary image upload</li>
-                <li>Admin panel for managing users and auctions</li>
-                <li>Responsive design for all devices</li>
-                <li>Login history and security tracking</li>
+                <li>Real-time auction bidding with Socket.io and instant outbid alerts</li>
+                <li>AI-Powered Listing auto-fill using Google Gemini Vision</li>
+                <li>Semantic Similar Auctions powered by vector embeddings & cosine similarity</li>
+                <li>Item listing and avatar management with Cloudinary image upload</li>
+                <li>Interactive Watchlist and live dashboard analytics</li>
+                <li>Admin panel for managing users and platform activity</li>
+                <li>Responsive design for all mobile, tablet, and desktop devices</li>
+                <li>Login history and geo-location security tracking</li>
               </ul>
             </section>
 
@@ -50,7 +53,8 @@ export const About = () => {
               </h2>
               <ul className="list-disc pl-6 space-y-2">
                 <li><strong>Frontend:</strong> React 19, Vite, Tailwind CSS v4, Redux Toolkit, React Query, Socket.io Client</li>
-                <li><strong>Backend:</strong> Node.js, Express 5, MongoDB, Mongoose, Socket.io, JWT, bcrypt</li>
+                <li><strong>Backend:</strong> Node.js, Express, MongoDB, Mongoose, Socket.io, JWT, bcrypt</li>
+                <li><strong>AI & Vector Search:</strong> Google Gemini API (Vision & Embedding-001)</li>
                 <li><strong>Services:</strong> Cloudinary (images), Resend (email)</li>
               </ul>
             </section>

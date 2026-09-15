@@ -10,7 +10,13 @@ const SITE_NAME = "BidX";
 export const useDocumentTitle = (title) => {
   useEffect(() => {
     const prev = document.title;
-    document.title = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
+    if (!title) {
+      document.title = SITE_NAME;
+    } else if (title.includes(SITE_NAME)) {
+      document.title = title;
+    } else {
+      document.title = `${title} | ${SITE_NAME}`;
+    }
     return () => {
       document.title = prev;
     };

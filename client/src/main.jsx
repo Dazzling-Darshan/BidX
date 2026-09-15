@@ -10,12 +10,17 @@ import { openRoutes } from "./routers/openRoutes.jsx";
 import InitAuth from "./init/InitAuth.jsx";
 import { adminRouter } from "./routers/adminRouter.jsx";
 import { Toaster } from "react-hot-toast";
+import Error from "./Error.jsx";
 
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   ...adminRouter,
   ...protectedRoutes,
   ...openRoutes,
+  {
+    path: "*",
+    element: <Error />,
+  },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
