@@ -31,10 +31,15 @@ export const useSocket = (auctionId, currentUserId) => {
     };
 
     const handleUserLeft = ({ userName, userId, activeUsers: users }) => {
-      setActiveUsers(users || []);
+      // Instantly prune the user from activeUsers state
+      if (Array.isArray(users)) {
+        setActiveUsers(users.filter((u) => u.userId !== userId));
+      } else {
+        setActiveUsers((prev) => prev.filter((u) => u.userId !== userId));
+      }
       // Only show toast for OTHER users leaving
       if (userName && userId !== currentUserId) {
-        toast(`${userName} left the auction`, { icon: "\uD83D\uDEAA" });
+        toast(`${userName} left the auction`, { icon: "🚪" });
       }
     };
 
@@ -79,6 +84,14 @@ export const useSocket = (auctionId, currentUserId) => {
       if (socket.connected) {
         socket.emit("auction:leave", { auctionId });
       }
+      try {
+        const baseUrl = import.meta.env.VITE_API || "/api";
+        fetch(`${baseUrl}/auction/${auctionId}/leave`, {
+          method: "POST",
+          credentials: "include",
+          keepalive: true,
+        }).catch(() => {});
+      } catch (_) {}
     };
 
     window.addEventListener("beforeunload", emitLeave);

@@ -3,6 +3,7 @@ import Product from "../models/product.model.js";
 import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import { getIO } from "../socket/index.js";
+import { removeUserFromAuction } from "../socket/auction.handler.js";
 import Upload from "../models/upload.model.js";
 import {
   analyzeAuctionImage,
@@ -774,6 +775,21 @@ export const deleteAuction = async (req, res) => {
       message: "Error deleting auction",
       error: error.message,
     });
+  }
+};
+
+export const leaveAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const userName = req.user?.name;
+    try {
+      const io = getIO();
+      removeUserFromAuction(io, id, userId, userName);
+    } catch (_) {}
+    return res.status(200).json({ success: true, message: "Left auction" });
+  } catch (error) {
+    return res.status(200).json({ success: false });
   }
 };
 

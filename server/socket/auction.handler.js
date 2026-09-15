@@ -12,7 +12,8 @@ export const registerAuctionHandlers = (io, socket) => {
   socket.join(`user:${userId}`);
 
   // Join auction room
-  socket.on("auction:join", ({ auctionId }) => {
+  socket.on("auction:join", (data) => {
+    const auctionId = typeof data === "object" ? data?.auctionId : data;
     if (!auctionId) return;
 
     socket.join(auctionId);
@@ -22,6 +23,14 @@ export const registerAuctionHandlers = (io, socket) => {
     }
 
     const room = auctionRooms.get(auctionId);
+
+    // Evict any previous socket entries for this user in this room
+    for (const [sId, u] of room.entries()) {
+      if (u.userId === userId && sId !== socket.id) {
+        room.delete(sId);
+      }
+    }
+
     room.set(socket.id, { userId, userName });
 
     // Broadcast to all users in room
@@ -35,7 +44,8 @@ export const registerAuctionHandlers = (io, socket) => {
   });
 
   // Leave auction room
-  socket.on("auction:leave", ({ auctionId }) => {
+  socket.on("auction:leave", (data) => {
+    const auctionId = typeof data === "object" ? data?.auctionId : data;
     handleLeaveAuction(io, socket, auctionId);
   });
 
@@ -165,38 +175,53 @@ export const registerAuctionHandlers = (io, socket) => {
   });
 };
 
-const handleLeaveAuction = (io, socket, auctionId) => {
+export const removeUserFromAuction = (io, auctionId, userId, userName = null, socketId = null) => {
   if (!auctionId || !auctionRooms.has(auctionId)) return;
 
   const room = auctionRooms.get(auctionId);
-  const userData = room.get(socket.id);
+  let resolvedName = userName;
+  let removed = false;
 
-  if (userData) {
-    room.delete(socket.id);
-
-    // Remove empty rooms
-    if (room.size === 0) {
-      auctionRooms.delete(auctionId);
+  for (const [sId, u] of room.entries()) {
+    if ((userId && u.userId === userId) || (socketId && sId === socketId)) {
+      if (!resolvedName) resolvedName = u.userName;
+      room.delete(sId);
+      removed = true;
+      const sock = io?.sockets?.sockets?.get(sId);
+      if (sock) {
+        try {
+          sock.leave(auctionId);
+        } catch (_) {}
+      }
     }
-
-    try {
-      socket.leave(auctionId);
-    } catch (_) {}
-
-    io.to(auctionId).emit("auction:userLeft", {
-      userName: userData.userName,
-      userId: userData.userId,
-      activeUsers: getActiveUsers(io, auctionId),
-    });
-
-    console.log(`${userData.userName} left auction: ${auctionId}`);
   }
+
+  // Remove empty room
+  if (room.size === 0) {
+    auctionRooms.delete(auctionId);
+  }
+
+  if (removed) {
+    const remainingUsers = getActiveUsers(io, auctionId);
+    io.to(auctionId).emit("auction:userLeft", {
+      userName: resolvedName,
+      userId,
+      activeUsers: remainingUsers,
+    });
+    console.log(`${resolvedName || "User"} (${userId || socketId}) left auction: ${auctionId}. Remaining: ${remainingUsers.length}`);
+  }
+};
+
+const handleLeaveAuction = (io, socket, auctionId) => {
+  const targetId = typeof auctionId === "object" ? auctionId?.auctionId : auctionId;
+  if (!targetId) return;
+  removeUserFromAuction(io, targetId, socket.user?.id, socket.user?.name, socket.id);
 };
 
 const cleanupSocket = (io, socket) => {
   for (const [auctionId, room] of auctionRooms.entries()) {
     if (room.has(socket.id)) {
-      handleLeaveAuction(io, socket, auctionId);
+      removeUserFromAuction(io, auctionId, socket.user?.id, socket.user?.name, socket.id);
     }
   }
 };
