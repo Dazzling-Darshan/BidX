@@ -75,10 +75,19 @@ export const useSocket = (auctionId, currentUserId) => {
       handleConnect();
     }
 
-    return () => {
+    const emitLeave = () => {
       if (socket.connected) {
         socket.emit("auction:leave", { auctionId });
       }
+    };
+
+    window.addEventListener("beforeunload", emitLeave);
+    window.addEventListener("pagehide", emitLeave);
+
+    return () => {
+      window.removeEventListener("beforeunload", emitLeave);
+      window.removeEventListener("pagehide", emitLeave);
+      emitLeave();
       socket.off("connect", handleConnect);
       socket.off("connect_error", handleConnectError);
       socket.off("auction:userJoined", handleUserJoined);

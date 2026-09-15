@@ -233,15 +233,11 @@ export const placeBid = async (req, res) => {
       return res.status(400).json({ message: "Auction has already ended" });
 
     const minBid = Math.max(product.currentPrice, product.startingPrice) + 1;
-    const maxBid = Math.max(product.currentPrice, product.startingPrice) + 10;
-    if (bidAmount < minBid)
+    if (!Number.isFinite(bidAmount) || bidAmount < minBid) {
       return res
         .status(400)
         .json({ message: `Bid must be at least Rs ${minBid}` });
-    if (bidAmount > maxBid)
-      return res
-        .status(400)
-        .json({ message: `Bid must be at max Rs ${maxBid}` });
+    }
 
     const previousLeadingBid =
       product.bids && product.bids.length > 0
@@ -546,16 +542,12 @@ export const getSimilarAuctions = async (req, res) => {
       .populate("seller", "name")
       .limit(40);
 
-    // If no future active auctions exist (e.g. test or demo database), fall back to other items
+    // If no active auctions exist, return empty array immediately
     if (candidateAuctions.length === 0) {
-      candidateAuctions = await Product.find({
-        _id: { $ne: currentProduct._id },
-      })
-        .select(
-          "+embedding itemName itemDescription currentPrice startingPrice bids itemEndDate itemCategory itemImage seller",
-        )
-        .populate("seller", "name")
-        .limit(40);
+      return res.status(200).json({
+        success: true,
+        similarAuctions: [],
+      });
     }
 
     let scored = [];

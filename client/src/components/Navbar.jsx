@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../store/auth/authSlice";
+import { disconnectSocket } from "../config/socket.js";
 import { usePrefetchHandlers } from "../hooks/useAuction.js";
 import {
   MdOutlineCreate,
@@ -76,6 +77,7 @@ export const Navbar = () => {
 
   const handleLogout = () => {
     dispatch(logout());
+    disconnectSocket();
     navigate("/");
   };
 

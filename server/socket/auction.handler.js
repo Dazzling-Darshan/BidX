@@ -28,7 +28,7 @@ export const registerAuctionHandlers = (io, socket) => {
     io.to(auctionId).emit("auction:userJoined", {
       userName,
       userId,
-      activeUsers: getActiveUsers(auctionId),
+      activeUsers: getActiveUsers(io, auctionId),
     });
 
     console.log(`${userName} joined auction: ${auctionId}`);
@@ -74,18 +74,10 @@ export const registerAuctionHandlers = (io, socket) => {
       }
 
       const minBid = Math.max(product.currentPrice, product.startingPrice) + 1;
-      const maxBid = Math.max(product.currentPrice, product.startingPrice) + 10;
 
-      if (amount < minBid) {
+      if (!Number.isFinite(amount) || amount < minBid) {
         socket.emit("auction:error", {
           message: `Bid must be at least Rs ${minBid}`,
-        });
-        return;
-      }
-
-      if (amount > maxBid) {
-        socket.emit("auction:error", {
-          message: `Bid must be at max Rs ${maxBid}`,
         });
         return;
       }
@@ -158,6 +150,15 @@ export const registerAuctionHandlers = (io, socket) => {
     }
   });
 
+  // Cleanup on disconnecting (fires while rooms are still available)
+  socket.on("disconnecting", () => {
+    for (const roomName of socket.rooms) {
+      if (roomName !== socket.id) {
+        handleLeaveAuction(io, socket, roomName);
+      }
+    }
+  });
+
   // Cleanup on disconnect
   socket.on("disconnect", () => {
     cleanupSocket(io, socket);
@@ -178,12 +179,14 @@ const handleLeaveAuction = (io, socket, auctionId) => {
       auctionRooms.delete(auctionId);
     }
 
-    socket.leave(auctionId);
+    try {
+      socket.leave(auctionId);
+    } catch (_) {}
 
     io.to(auctionId).emit("auction:userLeft", {
       userName: userData.userName,
       userId: userData.userId,
-      activeUsers: getActiveUsers(auctionId),
+      activeUsers: getActiveUsers(io, auctionId),
     });
 
     console.log(`${userData.userName} left auction: ${auctionId}`);
@@ -198,18 +201,34 @@ const cleanupSocket = (io, socket) => {
   }
 };
 
-const getActiveUsers = (auctionId) => {
-  const room = auctionRooms.get(auctionId);
-  if (!room) return [];
+export const getActiveUsers = (io, auctionId) => {
+  if (!auctionId || !auctionRooms.has(auctionId)) return [];
 
+  const room = auctionRooms.get(auctionId);
   const users = [];
   const seen = new Set();
+  const deadSocketIds = [];
 
-  for (const { userId, userName } of room.values()) {
+  for (const [socketId, { userId, userName }] of room.entries()) {
+    const liveSocket = io?.sockets?.sockets?.get(socketId);
+    // If socket no longer exists or is not connected, treat as dead
+    if (!liveSocket || !liveSocket.connected) {
+      deadSocketIds.push(socketId);
+      continue;
+    }
+
     if (!seen.has(userId)) {
       seen.add(userId);
       users.push({ userId, userName });
     }
+  }
+
+  // Purge dead sockets from memory
+  for (const deadId of deadSocketIds) {
+    room.delete(deadId);
+  }
+  if (room.size === 0) {
+    auctionRooms.delete(auctionId);
   }
 
   return users;

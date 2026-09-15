@@ -154,10 +154,10 @@ export const ViewAuction = () => {
         </p>
       </div>
     ) : (
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300">
         {data.bids.map((bid, index) => (
           <div
-            key={index}
+            key={bid._id || index}
             className={`flex items-center justify-between p-3 rounded-xl transition ${
               index === 0
                 ? "bg-indigo-50 border border-indigo-100"
@@ -344,9 +344,16 @@ export const ViewAuction = () => {
 
               {/* Bid History — Desktop */}
               <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-sm p-5">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                  Bid History
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    Bid History
+                  </h3>
+                  {data.bids?.length > 0 && (
+                    <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                      {data.bids.length} {data.bids.length === 1 ? "bid" : "bids"}
+                    </span>
+                  )}
+                </div>
                 <BidHistoryList />
               </div>
             </div>
@@ -521,15 +528,15 @@ export const ViewAuction = () => {
                   >
                     Place your bid
                   </label>
-                  <span className="text-xs text-gray-400 font-medium">
-                    Allowed: Rs {data.currentPrice + 1} – {data.currentPrice + 10}
+                  <span className="text-xs text-gray-500 font-medium">
+                    Min Bid: <strong className="text-indigo-600">Rs {data.currentPrice + 1}</strong>
                   </span>
                 </div>
 
                 {/* Quick Bid Presets */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs text-gray-400 font-medium">Quick Bid:</span>
-                  {[1, 5, 10].map((inc) => {
+                <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+                  <span className="text-xs text-gray-400 font-medium mr-1">Quick Bid:</span>
+                  {[1, 5, 10, 50, 100].map((inc) => {
                     const quickVal = data.currentPrice + inc;
                     return (
                       <button
@@ -542,7 +549,7 @@ export const ViewAuction = () => {
                         }}
                         className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 active:scale-95 transition cursor-pointer border border-indigo-100"
                       >
-                        +Rs {inc} ({quickVal})
+                        +{inc} (Rs {quickVal})
                       </button>
                     );
                   })}
@@ -559,16 +566,16 @@ export const ViewAuction = () => {
                       id="bidAmount"
                       ref={inputRef}
                       min={data.currentPrice + 1}
-                      max={data.currentPrice + 10}
+                      step="1"
                       className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-semibold text-lg tabular-nums placeholder:text-gray-300 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
-                      placeholder={String(data.currentPrice + 1)}
+                      placeholder={`e.g. ${data.currentPrice + 10}`}
                       required
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={bidding}
-                    className={`px-5 py-3 rounded-xl font-semibold text-sm transition-all ${
+                    className={`px-5 py-3 rounded-xl font-semibold text-sm transition-all cursor-pointer ${
                       bidding
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] shadow-sm shadow-indigo-200"
@@ -637,14 +644,21 @@ export const ViewAuction = () => {
 
         {/* Bid History — Mobile */}
         <div className="mt-8 lg:hidden bg-white rounded-2xl border border-gray-200/80 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">
-            Bid History
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-700">
+              Bid History
+            </h3>
+            {data.bids?.length > 0 && (
+              <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                {data.bids.length} {data.bids.length === 1 ? "bid" : "bids"}
+              </span>
+            )}
+          </div>
           <BidHistoryList />
         </div>
 
         {/* Similar Auctions (Gemini Vector Embeddings) */}
-        {similarAuctions.length > 0 && (
+        {similarAuctions.filter((sim) => new Date(sim.itemEndDate) > new Date()).length > 0 && (
           <section className="mt-14 pt-10 border-t border-gray-200/80">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm shadow-indigo-200">
@@ -665,9 +679,11 @@ export const ViewAuction = () => {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {similarAuctions.map((sim) => (
-                <AuctionCard key={sim._id} auction={sim} />
-              ))}
+              {similarAuctions
+                .filter((sim) => new Date(sim.itemEndDate) > new Date())
+                .map((sim) => (
+                  <AuctionCard key={sim._id} auction={sim} />
+                ))}
             </div>
           </section>
         )}
