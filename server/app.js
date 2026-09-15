@@ -15,11 +15,18 @@ import { connectDB } from "./config/db.config.js";
 import cron from "node-cron";
 import { cleanupUnusedUploads } from "./jobs/cleanupUploads.js";
 
+import { isOriginAllowed } from "./utils/cors.util.js";
+
 export const app = express();
 
 app.use(
   cors({
-    origin: env.origin,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Blocked by CORS for origin: ${origin}`));
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   }),

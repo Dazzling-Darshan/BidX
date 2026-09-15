@@ -3,13 +3,19 @@ import jwt from "jsonwebtoken";
 import { env } from "../config/env.config.js";
 import { registerAuctionHandlers } from "./auction.handler.js";
 import User from "../models/user.model.js";
+import { isOriginAllowed } from "../utils/cors.util.js";
 
 let io;
 
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: env.origin,
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Blocked by CORS: ${origin}`));
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },
