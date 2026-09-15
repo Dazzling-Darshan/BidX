@@ -65,7 +65,25 @@ A modern, real-time full-stack auction platform built with React, Express, Mongo
 
 ### Setup Instructions
 
-#### 1. Clone the repo
+#### Option A: Running with Docker (1-Command Instant Setup) 🐳
+If you have Docker installed, you can launch the complete full-stack app with a single command:
+
+```bash
+# 1. Create your server/.env with your MONGO_URL and credentials
+cp server/.env.example server/.env
+
+# 2. Build and launch all containers
+docker compose up --build
+```
+- Frontend will be available at: **`http://localhost:5173`**
+- Backend API will be available at: **`http://localhost:4000/api`**
+- To stop everything: `docker compose down`
+
+---
+
+#### Option B: Running Locally with Node.js & npm
+
+##### 1. Clone the repo
 ```bash
 git clone <repo-url>
 cd online-auction-system
