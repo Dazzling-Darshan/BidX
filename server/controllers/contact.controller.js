@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { env } from "../config/env.config.js";
+import Message from "../models/message.model.js";
 
 const resend = new Resend(env.resend_api_key);
 
@@ -19,40 +20,73 @@ export const handleSendMessage = async (req, res) => {
     const { name, email, subject, message } = req.body;
 
     // Validate required fields
-    if (!name || !email || !subject || !message) {
+    if (!name?.trim() || !email?.trim() || !subject?.trim() || !message?.trim()) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Invalid email address" });
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
     }
 
-    // Sanitize inputs for HTML email templates
-    const safeName = escapeHtml(name);
-    const safeEmail = escapeHtml(email);
-    const safeSubject = escapeHtml(subject);
-    const safeMessage = escapeHtml(message);
+    if (name.trim().length < 2) {
+      return res.status(400).json({ error: "Name must be at least 2 characters" });
+    }
 
-    await resend.batch.send([
-      {
-        from: `Auction Platform <noreply@yourdomain.com>`,
-        to: ["your-admin-email@example.com"],
-        reply_to: email,
-        subject: `${safeName} sent a message`,
-        html: adminEmailTemplate(safeName, safeEmail, safeSubject, safeMessage),
-      },
-      {
-        from: `Darshan Prajapati <noreply@yourdomain.com>`,
-        to: email,
-        subject: `Reply from Darshan Prajapati`,
-        html: userEmailTemplate(safeName, safeEmail, safeSubject, safeMessage),
-      },
-    ]);
-    res.status(200).json({ message: "Message sent succesfully" });
+    if (subject.trim().length < 3) {
+      return res.status(400).json({ error: "Subject must be at least 3 characters" });
+    }
+
+    if (message.trim().length < 10) {
+      return res.status(400).json({ error: "Message must be at least 10 characters" });
+    }
+
+    // 1. Always persist the message to database so it is never lost
+    const savedMessage = await Message.create({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      subject: subject.trim(),
+      message: message.trim(),
+      status: "unread",
+    });
+
+    // 2. Attempt email dispatch via Resend without failing the request if email service has issues
+    if (env.resend_api_key) {
+      try {
+        const safeName = escapeHtml(name.trim());
+        const safeEmail = escapeHtml(email.trim());
+        const safeSubject = escapeHtml(subject.trim());
+        const safeMessage = escapeHtml(message.trim());
+
+        await resend.batch.send([
+          {
+            from: `BidX Support <onboarding@resend.dev>`,
+            to: ["admin@bidx.com"],
+            reply_to: email.trim(),
+            subject: `[Contact Form] ${safeSubject}`,
+            html: adminEmailTemplate(safeName, safeEmail, safeSubject, safeMessage),
+          },
+          {
+            from: `BidX Support <onboarding@resend.dev>`,
+            to: email.trim(),
+            subject: `We've received your message: ${safeSubject}`,
+            html: userEmailTemplate(safeName, safeEmail, safeSubject, safeMessage),
+          },
+        ]);
+      } catch (emailErr) {
+        console.warn("Resend email dispatch warning (message saved to DB):", emailErr.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Your message has been sent successfully! Our team will get back to you soon.",
+      data: savedMessage,
+    });
   } catch (error) {
-    return res.status(500).json({ error: "Something went wrong from server" });
+    console.error("Error in handleSendMessage:", error);
+    return res.status(500).json({ error: "Failed to submit message. Please try again." });
   }
 };
 

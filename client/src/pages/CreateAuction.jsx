@@ -37,6 +37,58 @@ export const CreateAuction = () => {
     itemEndDate: "",
   });
 
+  const [touched, setTouched] = useState({
+    itemName: false,
+    itemDescription: false,
+    itemCategory: false,
+    startingPrice: false,
+    itemStartDate: false,
+    itemEndDate: false,
+    photo: false,
+  });
+
+  const fieldErrors = {
+    itemName:
+      !formData.itemName.trim()
+        ? "Item title is required"
+        : formData.itemName.trim().length < 3
+        ? "Title must be at least 3 characters"
+        : null,
+    itemDescription:
+      !formData.itemDescription.trim()
+        ? "Item description is required"
+        : formData.itemDescription.trim().length < 10
+        ? "Description must be at least 10 characters"
+        : null,
+    itemCategory: !formData.itemCategory ? "Please select a category" : null,
+    startingPrice:
+      !formData.startingPrice
+        ? "Starting price is required"
+        : Number(formData.startingPrice) < 1
+        ? "Starting price must be at least ₹1"
+        : null,
+    itemStartDate: !formData.itemStartDate ? "Start date is required" : null,
+    itemEndDate:
+      !formData.itemEndDate
+        ? "End date is required"
+        : formData.itemStartDate && new Date(formData.itemEndDate) <= new Date(formData.itemStartDate)
+        ? "End date must be after start date"
+        : null,
+    photo:
+      !uploadedMetaRef.current?.secure_url && !previewUrl
+        ? "Please upload a photo of the item"
+        : null,
+  };
+
+  const isFormValid =
+    !fieldErrors.itemName &&
+    !fieldErrors.itemDescription &&
+    !fieldErrors.itemCategory &&
+    !fieldErrors.startingPrice &&
+    !fieldErrors.itemStartDate &&
+    !fieldErrors.itemEndDate &&
+    !fieldErrors.photo;
+
   useEffect(() => {
     return () => {
       if (previewUrlRef.current) {
@@ -54,6 +106,15 @@ export const CreateAuction = () => {
         startingPrice: "",
         itemStartDate: "",
         itemEndDate: "",
+      });
+      setTouched({
+        itemName: false,
+        itemDescription: false,
+        itemCategory: false,
+        startingPrice: false,
+        itemStartDate: false,
+        itemEndDate: false,
+        photo: false,
       });
 
       if (previewUrlRef.current) {
@@ -96,6 +157,10 @@ export const CreateAuction = () => {
     setError("");
   };
 
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleDurationPreset = (days) => {
     const now = new Date();
     const startDateStr = now.toISOString().split("T")[0];
@@ -106,6 +171,11 @@ export const CreateAuction = () => {
       ...prev,
       itemStartDate: startDateStr,
       itemEndDate: endDateStr,
+    }));
+    setTouched((prev) => ({
+      ...prev,
+      itemStartDate: true,
+      itemEndDate: true,
     }));
     setError("");
     toast.success(`Set duration to ${days} ${days === 1 ? "day" : "days"}`, {
@@ -159,14 +229,11 @@ export const CreateAuction = () => {
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current);
     }
-    const localPreview = URL.createObjectURL(file);
-    previewUrlRef.current = localPreview;
-    setPreviewUrl(localPreview);
+    const localUrl = URL.createObjectURL(file);
+    previewUrlRef.current = localUrl;
+    setPreviewUrl(localUrl);
     setSelectedFileName(file.name);
-
-    // Reset previous upload metadata and begin upload UI
-    uploadedMetaRef.current = { formId: "", public_id: "", secure_url: "" };
-    setUploadProgress(0);
+    setUploadProgress(10);
     setIsUploading(true);
 
     try {
@@ -190,20 +257,19 @@ export const CreateAuction = () => {
         throw new Error("Cloud upload failed");
       }
 
-      // Keep cloud metadata in ref (no extra save endpoint call)
       uploadedMetaRef.current = {
         formId: signatureData.formId,
         public_id,
         secure_url,
       };
-
       setUploadProgress(100);
+      setTouched((prev) => ({ ...prev, photo: true }));
     } catch (err) {
       uploadedMetaRef.current = { formId: "", public_id: "", secure_url: "" };
       setError(
         err?.response?.data?.message ||
           err?.message ||
-          "Image upload failed. Please try again.",
+          "Image upload failed. Please try again."
       );
     } finally {
       setIsUploading(false);
@@ -259,12 +325,22 @@ export const CreateAuction = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    setTouched({
+      itemName: true,
+      itemDescription: true,
+      itemCategory: true,
+      startingPrice: true,
+      itemStartDate: true,
+      itemEndDate: true,
+      photo: true,
+    });
+
     const uploadMeta = uploadedMetaRef.current;
     if (!uploadMeta.formId || !uploadMeta.public_id || !uploadMeta.secure_url) {
       setError(
         isUploading
           ? "Image upload is in progress. Please wait."
-          : "Please upload an image first.",
+          : "Please upload an image first."
       );
       return;
     }
@@ -274,6 +350,10 @@ export const CreateAuction = () => {
 
     if (end <= start) {
       setError("End date must be after start date.");
+      return;
+    }
+
+    if (!isFormValid) {
       return;
     }
 
@@ -300,6 +380,15 @@ export const CreateAuction = () => {
 
   const inputClasses =
     "w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition";
+
+  const getInputClasses = (fieldName) => {
+    const hasErr = touched[fieldName] && fieldErrors[fieldName];
+    return `w-full px-4 py-3 bg-gray-50 border rounded-xl text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition ${
+      hasErr
+        ? "border-red-300 focus:ring-red-500/30 focus:border-red-400 bg-red-50/20"
+        : "border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-400"
+    }`;
+  };
 
   const submitDisabled = isPending || isUploading;
 
@@ -393,13 +482,14 @@ export const CreateAuction = () => {
               )}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+              {/* Item Name */}
               <div>
                 <label
                   htmlFor="itemName"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
-                  Item Name
+                  Item Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -407,45 +497,60 @@ export const CreateAuction = () => {
                   name="itemName"
                   value={formData.itemName}
                   onChange={handleInputChange}
-                  className={inputClasses}
+                  onBlur={() => handleBlur("itemName")}
+                  className={getInputClasses("itemName")}
                   placeholder="e.g. Vintage mechanical watch"
                   required
                 />
+                {touched.itemName && fieldErrors.itemName && (
+                  <p className="text-xs text-red-600 mt-1 font-medium">
+                    {fieldErrors.itemName}
+                  </p>
+                )}
               </div>
 
+              {/* Description */}
               <div>
                 <label
                   htmlFor="itemDescription"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
-                  Description
+                  Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   id="itemDescription"
                   name="itemDescription"
                   value={formData.itemDescription}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("itemDescription")}
                   rows={4}
-                  className={`${inputClasses} resize-vertical`}
-                  placeholder="Describe condition, features, and any relevant details"
+                  className={`${getInputClasses("itemDescription")} resize-vertical`}
+                  placeholder="Describe condition, features, and any relevant details (at least 10 characters)"
                   required
                 />
+                {touched.itemDescription && fieldErrors.itemDescription && (
+                  <p className="text-xs text-red-600 mt-1 font-medium">
+                    {fieldErrors.itemDescription}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Category */}
                 <div>
                   <label
                     htmlFor="itemCategory"
                     className="block text-sm font-medium text-gray-700 mb-1.5"
                   >
-                    Category
+                    Category <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="itemCategory"
                     name="itemCategory"
                     value={formData.itemCategory}
                     onChange={handleInputChange}
-                    className={inputClasses}
+                    onBlur={() => handleBlur("itemCategory")}
+                    className={getInputClasses("itemCategory")}
                     required
                   >
                     <option value="">Select category</option>
@@ -455,18 +560,24 @@ export const CreateAuction = () => {
                       </option>
                     ))}
                   </select>
+                  {touched.itemCategory && fieldErrors.itemCategory && (
+                    <p className="text-xs text-red-600 mt-1 font-medium">
+                      {fieldErrors.itemCategory}
+                    </p>
+                  )}
                 </div>
 
+                {/* Starting Price */}
                 <div>
                   <label
                     htmlFor="startingPrice"
                     className="block text-sm font-medium text-gray-700 mb-1.5"
                   >
-                    Starting Price (Rs)
+                    Starting Price (₹) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      Rs
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
+                      ₹
                     </span>
                     <input
                       type="number"
@@ -474,13 +585,19 @@ export const CreateAuction = () => {
                       name="startingPrice"
                       value={formData.startingPrice}
                       onChange={handleInputChange}
+                      onBlur={() => handleBlur("startingPrice")}
                       min="1"
                       step="1"
-                      className={`${inputClasses} pl-10`}
+                      className={`${getInputClasses("startingPrice")} pl-9`}
                       placeholder="100"
                       required
                     />
                   </div>
+                  {touched.startingPrice && fieldErrors.startingPrice && (
+                    <p className="text-xs text-red-600 mt-1 font-medium">
+                      {fieldErrors.startingPrice}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -507,12 +624,13 @@ export const CreateAuction = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Start Date */}
                 <div>
                   <label
                     htmlFor="itemStartDate"
                     className="block text-sm font-medium text-gray-700 mb-1.5"
                   >
-                    Start Date
+                    Start Date <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -522,17 +640,24 @@ export const CreateAuction = () => {
                     value={formData.itemStartDate}
                     max={maxStartDate}
                     onChange={handleInputChange}
-                    className={inputClasses}
+                    onBlur={() => handleBlur("itemStartDate")}
+                    className={getInputClasses("itemStartDate")}
                     required
                   />
+                  {touched.itemStartDate && fieldErrors.itemStartDate && (
+                    <p className="text-xs text-red-600 mt-1 font-medium">
+                      {fieldErrors.itemStartDate}
+                    </p>
+                  )}
                 </div>
 
+                {/* End Date */}
                 <div>
                   <label
                     htmlFor="itemEndDate"
                     className="block text-sm font-medium text-gray-700 mb-1.5"
                   >
-                    End Date
+                    End Date <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -540,17 +665,23 @@ export const CreateAuction = () => {
                     name="itemEndDate"
                     value={formData.itemEndDate}
                     onChange={handleInputChange}
+                    onBlur={() => handleBlur("itemEndDate")}
                     min={formData.itemStartDate}
                     max={maxEndDate}
-                    className={inputClasses}
+                    className={getInputClasses("itemEndDate")}
                     required
                   />
+                  {touched.itemEndDate && fieldErrors.itemEndDate && (
+                    <p className="text-xs text-red-600 mt-1 font-medium">
+                      {fieldErrors.itemEndDate}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Photo
+                  Photo <span className="text-red-500">*</span>
                 </label>
 
                 {!previewUrl ? (
@@ -698,6 +829,11 @@ export const CreateAuction = () => {
                       </div>
                     </div>
                   </div>
+                )}
+                {touched.photo && fieldErrors.photo && (
+                  <p className="text-xs text-red-600 mt-1.5 font-medium">
+                    {fieldErrors.photo}
+                  </p>
                 )}
               </div>
 

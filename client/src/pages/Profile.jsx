@@ -46,6 +46,9 @@ export default function Profile() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Avatar update mutation
   const { mutate: mutateAvatar, isPending: isUploadingAvatar } = useUpdateAvatar({
@@ -383,14 +386,21 @@ export default function Profile() {
                       <CiLock className="h-5 w-5" />
                     </div>
                     <input
-                      type="password"
+                      type={showCurrentPassword ? "text" : "password"}
                       id="currentPassword"
                       name="currentPassword"
                       value={passwordData.currentPassword}
                       onChange={handlePasswordInputChange}
                       placeholder="••••••••"
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
+                      className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showCurrentPassword ? "👁️" : "👁️‍🗨️"}
+                    </button>
                   </div>
                 </div>
 
@@ -407,16 +417,30 @@ export default function Profile() {
                       <CiLock className="h-5 w-5" />
                     </div>
                     <input
-                      type="password"
+                      type={showNewPassword ? "text" : "password"}
                       id="newPassword"
                       name="newPassword"
                       value={passwordData.newPassword}
                       onChange={handlePasswordInputChange}
                       placeholder="Min 8 characters"
                       minLength={8}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
+                      className={`block w-full pl-10 pr-10 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition ${
+                        passwordData.newPassword && passwordData.newPassword.length < 8
+                          ? "border-red-300 focus:ring-red-500/20 focus:border-red-500"
+                          : "border-gray-300 focus:ring-indigo-500/20 focus:border-indigo-600"
+                      }`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showNewPassword ? "👁️" : "👁️‍🗨️"}
+                    </button>
                   </div>
+                  {passwordData.newPassword && passwordData.newPassword.length < 8 && (
+                    <p className="text-[11px] text-red-500 mt-1">Must be at least 8 characters</p>
+                  )}
                 </div>
 
                 {/* Confirm New Password */}
@@ -432,15 +456,29 @@ export default function Profile() {
                       <CiLock className="h-5 w-5" />
                     </div>
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
                       name="confirmPassword"
                       value={passwordData.confirmPassword}
                       onChange={handlePasswordInputChange}
                       placeholder="Repeat new password"
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition"
+                      className={`block w-full pl-10 pr-10 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 transition ${
+                        passwordData.confirmPassword && passwordData.confirmPassword !== passwordData.newPassword
+                          ? "border-red-300 focus:ring-red-500/20 focus:border-red-500"
+                          : "border-gray-300 focus:ring-indigo-500/20 focus:border-indigo-600"
+                      }`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                    </button>
                   </div>
+                  {passwordData.confirmPassword && passwordData.confirmPassword !== passwordData.newPassword && (
+                    <p className="text-[11px] text-red-500 mt-1">Passwords do not match</p>
+                  )}
                 </div>
               </div>
 
@@ -452,7 +490,8 @@ export default function Profile() {
                     isChangingPassword ||
                     !passwordData.currentPassword ||
                     !passwordData.newPassword ||
-                    !passwordData.confirmPassword
+                    passwordData.newPassword.length < 8 ||
+                    passwordData.newPassword !== passwordData.confirmPassword
                   }
                   className="px-5 py-2.5 bg-gray-900 hover:bg-black active:scale-98 text-white text-sm font-semibold rounded-lg shadow-xs transition cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

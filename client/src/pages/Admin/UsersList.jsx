@@ -1,30 +1,46 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
+import { useSelector } from "react-redux";
 import LoadingScreen from "../../components/LoadingScreen";
-import { getAllUsers } from "../../services/admin.service.js";
+import { getAllUsers, updateUserRole, deleteUser } from "../../services/admin.service.js";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import toast from "react-hot-toast";
+import {
+  MdOutlineDelete,
+  MdOutlineAdminPanelSettings,
+  MdOutlinePersonOutline,
+  MdWarningAmber,
+} from "react-icons/md";
 
 export const UsersList = () => {
-  useDocumentTitle("Manage Users");
+  useDocumentTitle("Manage Users | Admin");
+  const authState = useSelector((state) => state.auth);
+  const currentUserId = authState?.user?.user?._id || authState?.user?._id;
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [deleteModal, setDeleteModal] = useState({ open: false, user: null, deleting: false });
+  const [roleModal, setRoleModal] = useState({ open: false, user: null, updating: false });
 
   const fetchUsers = async (
     page = 1,
     search = "",
+    role = "all",
     sort = "createdAt",
     order = "desc",
   ) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getAllUsers(page, search, "all", 20, sort, order);
+      const roleParam = role === "all" ? "" : role;
+      const response = await getAllUsers(page, search, roleParam, 20, sort, order);
       setUsers(response.data.users);
       setPagination(response.data.pagination);
     } catch (error) {
@@ -37,8 +53,38 @@ export const UsersList = () => {
   };
 
   useEffect(() => {
-    fetchUsers(currentPage, searchTerm, sortBy, sortOrder);
-  }, [currentPage, searchTerm, sortBy, sortOrder]);
+    fetchUsers(currentPage, searchTerm, roleFilter, sortBy, sortOrder);
+  }, [currentPage, searchTerm, roleFilter, sortBy, sortOrder]);
+
+  const handleRoleToggleConfirm = async () => {
+    if (!roleModal.user) return;
+    const targetUser = roleModal.user;
+    const newRole = targetUser.role === "admin" ? "user" : "admin";
+    setRoleModal((p) => ({ ...p, updating: true }));
+    try {
+      await updateUserRole(targetUser._id, newRole);
+      toast.success(`${targetUser.name}'s role updated to ${newRole}`);
+      setRoleModal({ open: false, user: null, updating: false });
+      fetchUsers(currentPage, searchTerm, roleFilter, sortBy, sortOrder);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update role");
+      setRoleModal((p) => ({ ...p, updating: false }));
+    }
+  };
+
+  const handleDeleteUserConfirm = async () => {
+    if (!deleteModal.user) return;
+    setDeleteModal((p) => ({ ...p, deleting: true }));
+    try {
+      await deleteUser(deleteModal.user._id);
+      toast.success(`User ${deleteModal.user.name} deleted successfully`);
+      setDeleteModal({ open: false, user: null, deleting: false });
+      fetchUsers(currentPage, searchTerm, roleFilter, sortBy, sortOrder);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to delete user");
+      setDeleteModal((p) => ({ ...p, deleting: false }));
+    }
+  };
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -158,9 +204,9 @@ export const UsersList = () => {
           </Link>
         </div>
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
+        {/* Search & Filters */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
             <svg
               className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
               fill="none"
@@ -179,8 +225,23 @@ export const UsersList = () => {
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={handleSearch}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition shadow-sm"
             />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition shadow-sm"
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admins Only</option>
+              <option value="user">Users Only</option>
+            </select>
           </div>
         </div>
 
@@ -195,7 +256,7 @@ export const UsersList = () => {
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="border-b border-gray-100">
+                <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th
                     className="px-6 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-600 transition"
                     onClick={() => handleSort("name")}
@@ -234,13 +295,16 @@ export const UsersList = () => {
                   <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-6 py-3.5 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {users.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-6 py-16 text-center text-gray-400"
                     >
                       No users found matching your criteria.
@@ -248,6 +312,7 @@ export const UsersList = () => {
                   </tr>
                 ) : (
                   users.map((user, i) => {
+                    const isSelf = user._id === currentUserId;
                     const avatarColors = [
                       "from-indigo-400 to-violet-500",
                       "from-emerald-400 to-teal-500",
@@ -270,9 +335,16 @@ export const UsersList = () => {
                               </span>
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                {user.name}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {user.name}
+                                </p>
+                                {isSelf && (
+                                  <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">
+                                    You
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-gray-400">
                                 {user.email}
                               </p>
@@ -304,6 +376,67 @@ export const UsersList = () => {
                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                             Active
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Role Toggle Button */}
+                            <button
+                              onClick={() =>
+                                setRoleModal({
+                                  open: true,
+                                  user,
+                                  updating: false,
+                                })
+                              }
+                              disabled={isSelf}
+                              title={
+                                isSelf
+                                  ? "Cannot change your own role"
+                                  : user.role === "admin"
+                                  ? "Demote to User"
+                                  : "Promote to Admin"
+                              }
+                              className={`p-1.5 rounded-lg border text-xs font-medium transition flex items-center gap-1 ${
+                                isSelf
+                                  ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                  : user.role === "admin"
+                                  ? "border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300"
+                                  : "border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300"
+                              }`}
+                            >
+                              {user.role === "admin" ? (
+                                <>
+                                  <MdOutlinePersonOutline className="w-4 h-4" />
+                                  <span className="hidden md:inline">Demote</span>
+                                </>
+                              ) : (
+                                <>
+                                  <MdOutlineAdminPanelSettings className="w-4 h-4" />
+                                  <span className="hidden md:inline">Make Admin</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              onClick={() =>
+                                setDeleteModal({
+                                  open: true,
+                                  user,
+                                  deleting: false,
+                                })
+                              }
+                              disabled={isSelf}
+                              title={isSelf ? "Cannot delete your own account" : "Delete user"}
+                              className={`p-1.5 rounded-lg border transition ${
+                                isSelf
+                                  ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                  : "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                              }`}
+                            >
+                              <MdOutlineDelete className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -404,6 +537,103 @@ export const UsersList = () => {
             </div>
           )}
         </div>
+
+        {/* Role Change Confirmation Modal */}
+        {roleModal.open && roleModal.user && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
+              <div className="flex items-center gap-3 text-indigo-600 mb-3">
+                <div className="p-2.5 bg-indigo-50 rounded-xl">
+                  <MdOutlineAdminPanelSettings className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {roleModal.user.role === "admin"
+                    ? "Demote to Standard User?"
+                    : "Promote to Administrator?"}
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+                Are you sure you want to change the role of{" "}
+                <span className="font-semibold text-gray-900">
+                  {roleModal.user.name}
+                </span>{" "}
+                ({roleModal.user.email}) to{" "}
+                <span className="font-semibold uppercase text-indigo-600">
+                  {roleModal.user.role === "admin" ? "user" : "admin"}
+                </span>
+                ?
+                {roleModal.user.role !== "admin" &&
+                  " This user will gain full access to admin moderation controls."}
+              </p>
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRoleModal({ open: false, user: null, updating: false })
+                  }
+                  disabled={roleModal.updating}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRoleToggleConfirm}
+                  disabled={roleModal.updating}
+                  className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition disabled:opacity-50"
+                >
+                  {roleModal.updating ? "Updating..." : "Confirm Change"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteModal.open && deleteModal.user && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
+              <div className="flex items-center gap-3 text-red-600 mb-3">
+                <div className="p-2.5 bg-red-50 rounded-xl">
+                  <MdWarningAmber className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Delete User Account?
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-2 leading-relaxed">
+                You are about to permanently delete{" "}
+                <span className="font-semibold text-gray-900">
+                  {deleteModal.user.name}
+                </span>{" "}
+                ({deleteModal.user.email}).
+              </p>
+              <p className="text-xs text-red-600 bg-red-50 p-3 rounded-xl mb-5 leading-relaxed">
+                This action cannot be undone. All active auctions, bids, and profile records belonging to this user will be purged from the platform.
+              </p>
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteModal({ open: false, user: null, deleting: false })
+                  }
+                  disabled={deleteModal.deleting}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteUserConfirm}
+                  disabled={deleteModal.deleting}
+                  className="px-5 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition disabled:opacity-50"
+                >
+                  {deleteModal.deleting ? "Deleting..." : "Permanently Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

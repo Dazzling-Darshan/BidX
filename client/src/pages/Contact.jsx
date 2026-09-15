@@ -1,16 +1,25 @@
 import { useState } from "react";
-import { FiSend } from "react-icons/fi";
+import { FiSend, FiMail, FiClock, FiMapPin, FiCheckCircle } from "react-icons/fi";
 import { useSendMessage } from "../hooks/useContact";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export const Contact = () => {
-  useDocumentTitle("Contact Us");
+  useDocumentTitle("Contact Us | BidX");
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     subject: "",
     message: "",
   });
+
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    subject: false,
+    message: false,
+  });
+
   const [submitted, setSubmitted] = useState(false);
   const [isError, setIsError] = useState("");
 
@@ -22,23 +31,91 @@ export const Contact = () => {
         subject: "",
         message: "",
       });
+      setTouched({
+        name: false,
+        email: false,
+        subject: false,
+        message: false,
+      });
       setSubmitted(true);
     },
     onError: (error) => {
-      setIsError(error?.response?.data?.error || "something went wrong");
+      setIsError(error?.response?.data?.message || error?.response?.data?.error || "Failed to send message. Please try again.");
       setTimeout(() => {
         setIsError("");
       }, 10000);
     },
   });
 
+  const quickSubjects = [
+    "General Inquiry",
+    "Bidding Question",
+    "Seller Support",
+    "Account / Security",
+    "Report an Issue",
+  ];
+
+  // Validation logic
+  const validate = () => {
+    const errors = {};
+    if (!formData.name.trim()) {
+      errors.name = "Full name is required";
+    } else if (formData.name.trim().length < 2) {
+      errors.name = "Name must be at least 2 characters";
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      errors.email = "Email address is required";
+    } else if (!emailRegex.test(formData.email.trim())) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.subject.trim()) {
+      errors.subject = "Subject is required";
+    } else if (formData.subject.trim().length < 3) {
+      errors.subject = "Subject must be at least 3 characters";
+    }
+
+    if (!formData.message.trim()) {
+      errors.message = "Message cannot be empty";
+    } else if (formData.message.trim().length < 10) {
+      errors.message = `Message must be at least 10 characters (currently ${formData.message.trim().length})`;
+    } else if (formData.message.length > 1000) {
+      errors.message = "Message cannot exceed 1,000 characters";
+    }
+
+    return errors;
+  };
+
+  const errors = validate();
+  const isValid = Object.keys(errors).length === 0;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  };
+
+  const handleQuickSubject = (subj) => {
+    setFormData((prev) => ({ ...prev, subject: subj }));
+    setTouched((prev) => ({ ...prev, subject: true }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setTouched({
+      name: true,
+      email: true,
+      subject: true,
+      message: true,
+    });
+
+    if (!isValid) return;
     mutate(formData);
   };
 
@@ -47,114 +124,85 @@ export const Contact = () => {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-xl mb-4">
-            <svg
-              className="w-6 h-6 text-indigo-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-xl mb-4 text-indigo-600 shadow-sm">
+            <FiMail className="w-6 h-6" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Get in Touch</h1>
-          <p className="text-gray-500 mt-2 max-w-md mx-auto">
-            Have a question or feedback? We&apos;d love to hear from you.
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+            Get in Touch
+          </h1>
+          <p className="text-gray-500 mt-2 max-w-md mx-auto text-sm sm:text-base">
+            Have a question, feedback, or need help with a live auction? Reach out and our team will get back to you promptly.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Info cards */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6 hover:border-indigo-200 transition">
               <div className="flex items-start gap-4">
-                <div className="bg-indigo-50 p-2.5 rounded-xl shrink-0">
-                  <svg
-                    className="w-5 h-5 text-indigo-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
+                <div className="bg-indigo-50 p-3 rounded-xl shrink-0 text-indigo-600">
+                  <FiMail className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">
-                    Email Us
+                    Official Support Email
                   </h3>
-                  <p className="text-sm text-gray-500 mt-1">darshanprajapati@example.com</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6">
-              <div className="flex items-start gap-4">
-                <div className="bg-emerald-50 p-2.5 rounded-xl shrink-0">
-                  <svg
-                    className="w-5 h-5 text-emerald-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    Response Time
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Usually within 24 hours
+                  <p className="text-sm text-indigo-600 font-medium mt-1">
+                    support@bidx-auction.com
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Direct inquiries & account assistance
                   </p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6">
+
+            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6 hover:border-emerald-200 transition">
               <div className="flex items-start gap-4">
-                <div className="bg-amber-50 p-2.5 rounded-xl shrink-0">
-                  <svg
-                    className="w-5 h-5 text-amber-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
+                <div className="bg-emerald-50 p-3 rounded-xl shrink-0 text-emerald-600">
+                  <FiClock className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">
-                    Location
+                    Response Window
                   </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Remote — Available worldwide
+                  <p className="text-sm text-gray-700 mt-1 font-medium">
+                    Within 24 Hours
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Monday to Saturday, 9 AM &ndash; 8 PM IST
                   </p>
                 </div>
               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6 hover:border-amber-200 transition">
+              <div className="flex items-start gap-4">
+                <div className="bg-amber-50 p-3 rounded-xl shrink-0 text-amber-600">
+                  <FiMapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Headquarters
+                  </h3>
+                  <p className="text-sm text-gray-700 mt-1 font-medium">
+                    BidX Digital Auctions
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Worldwide digital operations
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick tips card */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/70 p-5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 mb-2">
+                Need Fast Help?
+              </h4>
+              <p className="text-xs text-indigo-700/80 leading-relaxed">
+                If you are reporting an active auction dispute, please include the Auction Title or ID in your message for expedited review.
+              </p>
             </div>
           </div>
 
@@ -163,43 +211,55 @@ export const Contact = () => {
             <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-7">
               {submitted ? (
                 <div className="text-center py-12">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-5">
-                    <svg
-                      className="h-7 w-7 text-emerald-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-5 text-emerald-600 shadow-sm">
+                    <FiCheckCircle className="h-8 w-8" />
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    Message Sent!
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Message Sent Successfully!
                   </h2>
-                  <p className="text-gray-500 mb-6">
-                    We&apos;ll get back to you as soon as possible.
+                  <p className="text-gray-500 max-w-sm mx-auto mb-6 text-sm">
+                    Thank you for reaching out. Our support team has logged your inquiry and will reply to your email address shortly.
                   </p>
                   <button
                     onClick={() => setSubmitted(false)}
-                    className="text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+                    className="inline-flex items-center gap-2 bg-indigo-600 text-white font-medium text-sm px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition"
                   >
-                    Send another message &rarr;
+                    Send Another Message &rarr;
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                  {/* Quick Subject Category Selectors */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Topic Suggestion
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {quickSubjects.map((subj) => (
+                        <button
+                          key={subj}
+                          type="button"
+                          onClick={() => handleQuickSubject(subj)}
+                          className={`text-xs px-3 py-1.5 rounded-lg border transition font-medium ${
+                            formData.subject === subj
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                              : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
+                          }`}
+                        >
+                          {subj}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* Name Field */}
                     <div>
                       <label
                         htmlFor="name"
                         className="block text-sm font-medium text-gray-700 mb-1.5"
                       >
-                        Name
+                        Your Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -207,17 +267,28 @@ export const Contact = () => {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        required
-                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
-                        placeholder="Your name"
+                        onBlur={handleBlur}
+                        className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition text-sm ${
+                          touched.name && errors.name
+                            ? "border-red-300 focus:ring-red-500/30 focus:border-red-400 bg-red-50/20"
+                            : "border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-400"
+                        }`}
+                        placeholder="John Doe"
                       />
+                      {touched.name && errors.name && (
+                        <p className="text-xs text-red-600 mt-1 font-medium">
+                          {errors.name}
+                        </p>
+                      )}
                     </div>
+
+                    {/* Email Field */}
                     <div>
                       <label
                         htmlFor="email"
                         className="block text-sm font-medium text-gray-700 mb-1.5"
                       >
-                        Email
+                        Your Email <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="email"
@@ -225,19 +296,29 @@ export const Contact = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        required
-                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
-                        placeholder="you@example.com"
+                        onBlur={handleBlur}
+                        className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition text-sm ${
+                          touched.email && errors.email
+                            ? "border-red-300 focus:ring-red-500/30 focus:border-red-400 bg-red-50/20"
+                            : "border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-400"
+                        }`}
+                        placeholder="john@example.com"
                       />
+                      {touched.email && errors.email && (
+                        <p className="text-xs text-red-600 mt-1 font-medium">
+                          {errors.email}
+                        </p>
+                      )}
                     </div>
                   </div>
 
+                  {/* Subject Field */}
                   <div>
                     <label
                       htmlFor="subject"
                       className="block text-sm font-medium text-gray-700 mb-1.5"
                     >
-                      Subject
+                      Subject <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -245,33 +326,66 @@ export const Contact = () => {
                       name="subject"
                       value={formData.subject}
                       onChange={handleChange}
-                      required
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
-                      placeholder="How can we help?"
+                      onBlur={handleBlur}
+                      className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition text-sm ${
+                        touched.subject && errors.subject
+                          ? "border-red-300 focus:ring-red-500/30 focus:border-red-400 bg-red-50/20"
+                          : "border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-400"
+                      }`}
+                      placeholder="e.g. Issue with payment on Auction #402"
                     />
+                    {touched.subject && errors.subject && (
+                      <p className="text-xs text-red-600 mt-1 font-medium">
+                        {errors.subject}
+                      </p>
+                    )}
                   </div>
 
+                  {/* Message Field with Character Counter */}
                   <div>
-                    <label
-                      htmlFor="message"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      Message
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label
+                        htmlFor="message"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Message <span className="text-red-500">*</span>
+                      </label>
+                      <span
+                        className={`text-xs ${
+                          formData.message.length > 1000
+                            ? "text-red-600 font-bold"
+                            : formData.message.length < 10
+                            ? "text-gray-400"
+                            : "text-emerald-600 font-medium"
+                        }`}
+                      >
+                        {formData.message.length}/1000
+                      </span>
+                    </div>
                     <textarea
                       id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
-                      required
+                      onBlur={handleBlur}
                       rows={5}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition resize-none"
-                      placeholder="Your message..."
+                      maxLength={1000}
+                      className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition resize-none text-sm ${
+                        touched.message && errors.message
+                          ? "border-red-300 focus:ring-red-500/30 focus:border-red-400 bg-red-50/20"
+                          : "border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-400"
+                      }`}
+                      placeholder="Please describe your question or issue in detail (at least 10 characters)..."
                     ></textarea>
+                    {touched.message && errors.message && (
+                      <p className="text-xs text-red-600 mt-1 font-medium">
+                        {errors.message}
+                      </p>
+                    )}
                   </div>
 
                   {isError && (
-                    <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+                    <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                       {isError}
                     </div>
                   )}
@@ -279,13 +393,13 @@ export const Contact = () => {
                   <button
                     type="submit"
                     disabled={isPending}
-                    className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-indigo-200"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold px-7 py-3 rounded-xl hover:bg-indigo-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-indigo-200"
                   >
                     {isPending ? (
-                      "Sending..."
+                      "Sending Message..."
                     ) : (
                       <>
-                        Send Message
+                        <span>Send Message</span>
                         <FiSend className="h-4 w-4" />
                       </>
                     )}
