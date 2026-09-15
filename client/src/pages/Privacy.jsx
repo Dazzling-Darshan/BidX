@@ -5,9 +5,11 @@ import {
   CiServer,
   CiMonitor,
 } from "react-icons/ci";
+import { Link } from "react-router";
 import LoadingScreen from "../components/LoadingScreen";
 import { useLoginHistory } from "../hooks/useUser";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { FaShieldAlt, FaKey, FaLock } from "react-icons/fa";
 
 export default function Privacy() {
   useDocumentTitle("Security & Login History");
@@ -16,67 +18,70 @@ export default function Privacy() {
   if (isLoading) return <LoadingScreen />;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      {/* Page content */}
-      <main className="p-4 sm:p-6 lg:p-8 mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+    <div className="min-h-screen bg-gray-50/70 py-8 sm:py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="mb-8">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
+            <FaShieldAlt className="text-indigo-600" />
+            Account Protection
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Privacy & Security
           </h1>
-          <p className="text-gray-500 pb-4">
-            View your login history and security settings
+          <p className="text-sm text-gray-500 mt-1">
+            Review your device login audit trail and manage security preferences.
           </p>
+        </div>
 
-          {data && (
-            <div className="flex flex-col gap-4">
+        {/* Login History */}
+        <div className="mb-10">
+          <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <span>Recent Sign-in Activity</span>
+            <span className="text-xs font-normal text-gray-400">
+              ({data?.length || 0} sessions logged)
+            </span>
+          </h2>
+
+          {data && data.length > 0 ? (
+            <div className="flex flex-col gap-3">
               {data.map((entry) => (
                 <div
                   key={entry.id}
-                  className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+                  className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm hover:border-gray-300/80 transition-all"
                 >
-                  <div className="grid grid-cols-1 gap-y-2 sm:grid-cols-2 sm:gap-x-4 lg:grid-cols-3">
-                    <div className="flex items-center">
-                      <CiCalendar className="size-4 text-gray-500 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">
-                        Date & Time:
-                      </span>
-                      <span className="ml-2 text-sm text-gray-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="flex items-center text-xs">
+                      <CiCalendar className="size-4 text-indigo-500 mr-2 shrink-0" />
+                      <span className="font-semibold text-gray-700">Date:</span>
+                      <span className="ml-1.5 text-gray-600">
                         {entry.dateTime}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <CiGlobe className="size-4 text-gray-500 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">
-                        IP Address:
-                      </span>
-                      <span className="ml-2 text-sm text-gray-700">
+                    <div className="flex items-center text-xs">
+                      <CiGlobe className="size-4 text-indigo-500 mr-2 shrink-0" />
+                      <span className="font-semibold text-gray-700">IP:</span>
+                      <span className="ml-1.5 text-gray-600 font-mono">
                         {entry.ipAddress}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <CiMapPin className="size-4 text-gray-500 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">
-                        Location:
-                      </span>
-                      <span className="ml-2 text-sm text-gray-700">
-                        {entry.location}
+                    <div className="flex items-center text-xs">
+                      <CiMapPin className="size-4 text-indigo-500 mr-2 shrink-0" />
+                      <span className="font-semibold text-gray-700">Location:</span>
+                      <span className="ml-1.5 text-gray-600">
+                        {entry.location || "Unknown"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <CiServer className="size-4 text-gray-500 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">
-                        ISP:
-                      </span>
-                      <span className="ml-2 text-sm text-gray-700">
-                        {entry.isp}
+                    <div className="flex items-center text-xs">
+                      <CiServer className="size-4 text-indigo-500 mr-2 shrink-0" />
+                      <span className="font-semibold text-gray-700">ISP:</span>
+                      <span className="ml-1.5 text-gray-600 truncate">
+                        {entry.isp || "Standard Gateway"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <CiMonitor className="size-4 text-gray-500 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">
-                        Device:
-                      </span>
-                      <span className="ml-2 text-sm text-gray-700">
+                    <div className="flex items-center text-xs sm:col-span-2">
+                      <CiMonitor className="size-4 text-indigo-500 mr-2 shrink-0" />
+                      <span className="font-semibold text-gray-700">Device:</span>
+                      <span className="ml-1.5 text-gray-600 truncate">
                         {entry.device}
                       </span>
                     </div>
@@ -84,30 +89,44 @@ export default function Privacy() {
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-8 text-center text-sm text-gray-500">
+              No recent login history recorded.
+            </div>
           )}
         </div>
 
-        {/* Security settings */}
+        {/* Security Settings */}
         <div>
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+          <h2 className="text-base font-bold text-gray-900 mb-3">
             Security Settings
           </h2>
-          <div className="bg-white shadow overflow-hidden border border-gray-200 rounded-md divide-y divide-gray-200">
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">
-                    Two-Factor Authentication
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Add an extra layer of security to your account by requiring
-                    a verification code in addition to your password.
-                  </p>
+          <div className="bg-white shadow-sm overflow-hidden border border-gray-200/80 rounded-2xl divide-y divide-gray-100">
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <FaLock className="text-sm" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        Two-Factor Authentication (2FA)
+                      </h3>
+                      <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                        Coming Soon
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 max-w-md leading-relaxed">
+                      Add an extra layer of verification to your account by
+                      requiring an authenticator OTP alongside your password.
+                    </p>
+                  </div>
                 </div>
-                <div className="ml-4">
+                <div>
                   <button
                     disabled
-                    className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 cursor-not-allowed"
+                    className="px-4 py-2 border border-transparent text-xs font-semibold rounded-xl text-gray-400 bg-gray-100 cursor-not-allowed"
                   >
                     Enable
                   </button>
@@ -115,22 +134,28 @@ export default function Privacy() {
               </div>
             </div>
 
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">
-                    Password
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Change you password
-                  </p>
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <FaKey className="text-sm" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Password & Credentials
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1 max-w-md leading-relaxed">
+                      Update your account password regularly to keep your
+                      account and active bids protected.
+                    </p>
+                  </div>
                 </div>
-                <div className="ml-4">
+                <div>
                   <Link
                     to="/profile"
-                    className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-indigo-500"
+                    className="inline-block px-4 py-2 border border-gray-200 text-xs font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition shadow-sm"
                   >
-                    Change
+                    Change Password
                   </Link>
                 </div>
               </div>

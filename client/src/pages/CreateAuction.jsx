@@ -311,12 +311,45 @@ export const CreateAuction = () => {
         });
       }
     } catch (err) {
-      const msg =
+      const isOverloaded =
+        err?.response?.data?.isOverloaded || err?.response?.status === 503;
+      const isSafety = err?.response?.data?.isSafety;
+      const rawMsg =
         err?.response?.data?.message ||
         err?.message ||
-        "Failed to auto-generate details with AI";
-      setError(msg);
-      toast.error(msg);
+        "";
+
+      const isHighDemand =
+        isOverloaded ||
+        rawMsg.includes("demand") ||
+        rawMsg.includes("503") ||
+        rawMsg.includes("capacity") ||
+        rawMsg.includes("overload") ||
+        rawMsg.includes("unavailable");
+
+      if (isHighDemand) {
+        toast(
+          "AI service is currently busy. You can continue filling in your listing details manually.",
+          {
+            icon: "⚡",
+            duration: 5000,
+          }
+        );
+      } else if (isSafety || rawMsg.includes("safety") || rawMsg.includes("filter")) {
+        toast.error(
+          "This image could not be processed by AI filters. Please try another photo or fill in details manually.",
+          { duration: 5000 }
+        );
+      } else {
+        const cleanMsg =
+          rawMsg.includes("GoogleGenerativeAI") ||
+          rawMsg.includes("googleapis.com") ||
+          rawMsg.includes("v1beta") ||
+          rawMsg.includes("404")
+            ? "AI listing generator is temporarily unavailable. Please fill in details manually."
+            : rawMsg || "Failed to auto-generate details with AI";
+        toast.error(cleanMsg, { duration: 4000 });
+      }
     } finally {
       setIsGeneratingAI(false);
     }

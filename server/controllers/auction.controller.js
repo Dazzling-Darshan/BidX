@@ -514,9 +514,12 @@ export const generateAuctionAIListing = async (req, res) => {
     });
   } catch (error) {
     console.error("AI Generation Error:", error.message);
-    return res.status(500).json({
+    const statusCode = error.isOverloaded ? 503 : error.isSafety ? 400 : 500;
+    return res.status(statusCode).json({
       success: false,
       message: error.message || "Failed to generate auction details with AI",
+      isOverloaded: !!error.isOverloaded,
+      isSafety: !!error.isSafety,
     });
   }
 };
