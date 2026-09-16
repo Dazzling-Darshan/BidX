@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import {
   getAuctions,
   getMyAuctions,
@@ -23,7 +28,7 @@ export const useGetAuctions = (
   return useQuery({
     queryKey: ["auctions", page, category, search, sortBy, status],
     queryFn: () => getAuctions({ page, category, search, sortBy, status }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -31,7 +36,7 @@ export const useWatchlist = (page = 1) => {
   return useQuery({
     queryKey: ["watchlist", page],
     queryFn: () => getWatchlist({ page }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 };
 

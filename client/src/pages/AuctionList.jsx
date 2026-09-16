@@ -40,7 +40,7 @@ export const AuctionList = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data, isLoading } = useGetAuctions(
+  const { data, isLoading, isFetching } = useGetAuctions(
     page,
     filter,
     debouncedSearch,
@@ -48,7 +48,7 @@ export const AuctionList = () => {
     status,
   );
 
-  if (isLoading) return <LoadingScreen />;
+  if (isLoading && !data) return <LoadingScreen />;
 
   const rawData = data || {};
   const auctions = Array.isArray(rawData) ? rawData : rawData.auctions || [];
@@ -152,24 +152,31 @@ export const AuctionList = () => {
                 placeholder="Search auctions..."
                 className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition shadow-sm"
               />
-              <svg
-                className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              {isFetching && searchTerm ? (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <div className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <svg
+                  className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              )}
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full text-xs"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full text-xs cursor-pointer"
+                  title="Clear search"
                 >
                   ✕
                 </button>
@@ -237,7 +244,11 @@ export const AuctionList = () => {
             <p className="text-gray-400">No auctions found in this category</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 transition-opacity duration-200 ${
+              isFetching ? "opacity-75" : "opacity-100"
+            }`}
+          >
             {auctions.map((auction) => (
               <AuctionCard key={auction._id} auction={auction} />
             ))}

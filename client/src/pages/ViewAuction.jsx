@@ -19,7 +19,7 @@ export const ViewAuction = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const currentUserId = user?.user?._id;
+  const currentUserId = user?.user?._id || user?._id;
   const inputRef = useRef();
   const [bidding, setBidding] = useState(false);
   const [countdown, setCountdown] = useState({
@@ -28,6 +28,10 @@ export const ViewAuction = () => {
     minutes: 0,
     seconds: 0,
   });
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   const { data: fetchedData, isLoading, isError, error: queryError } = useViewAuction(id);
   const { data: similarData } = useSimilarAuctions(id);
@@ -118,7 +122,21 @@ export const ViewAuction = () => {
 
   const timeLeft = Math.max(0, new Date(data.itemEndDate) - new Date());
   const isActive = timeLeft > 0;
-  const isSeller = data.seller?._id === currentUserId;
+  const sellerId =
+    data?.seller?._id ||
+    (typeof data?.seller === "string" ? data?.seller : data?.seller?.id);
+  const isSeller = Boolean(
+    currentUserId && sellerId && String(sellerId) === String(currentUserId),
+  );
+
+  const validSimilar = similarAuctions.filter(
+    (sim) =>
+      sim &&
+      sim._id !== id &&
+      (!sim.itemEndDate ||
+        new Date(sim.itemEndDate) > new Date() ||
+        sim.timeLeft > 0),
+  );
 
   // Derive leading bid and winner accurately even during live timer expiry
   const bidsSortedByAmount = [...(data.bids || [])].sort(
@@ -515,8 +533,52 @@ export const ViewAuction = () => {
               </div>
             )}
 
-            {/* Bid Form */}
-            {!isSeller && isActive && (
+            {/* Bid Form or Creator Notice */}
+            {isSeller && isActive ? (
+              <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-6 text-center shadow-sm">
+                <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 mx-auto flex items-center justify-center mb-3">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <h4 className="text-sm font-bold text-gray-900 mb-1">
+                  You are the creator of this auction
+                </h4>
+                <p className="text-xs text-amber-800/90 leading-relaxed max-w-sm mx-auto mb-4">
+                  Auction creators cannot place bids on their own listings to maintain fairness and market integrity.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/myauction")}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm shadow-amber-200"
+                >
+                  Manage in My Auctions
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
+            ) : !isSeller && isActive ? (
               <form
                 onSubmit={handleBidSubmit}
                 className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6"
@@ -585,7 +647,7 @@ export const ViewAuction = () => {
                   </button>
                 </div>
               </form>
-            )}
+            ) : null}
 
             {/* Socket Error */}
             {socketError && (
@@ -657,8 +719,8 @@ export const ViewAuction = () => {
           <BidHistoryList />
         </div>
 
-        {/* Similar Auctions (Gemini Vector Embeddings) */}
-        {similarAuctions.filter((sim) => new Date(sim.itemEndDate) > new Date()).length > 0 && (
+        {/* Similar Auctions (Gemini Vector Embeddings & Category) */}
+        {validSimilar.length > 0 && (
           <section className="mt-14 pt-10 border-t border-gray-200/80">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm shadow-indigo-200">
@@ -679,11 +741,9 @@ export const ViewAuction = () => {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {similarAuctions
-                .filter((sim) => new Date(sim.itemEndDate) > new Date())
-                .map((sim) => (
-                  <AuctionCard key={sim._id} auction={sim} />
-                ))}
+              {validSimilar.map((sim) => (
+                <AuctionCard key={sim._id} auction={sim} />
+              ))}
             </div>
           </section>
         )}

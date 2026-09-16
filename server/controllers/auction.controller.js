@@ -224,7 +224,7 @@ export const placeBid = async (req, res) => {
     if (!product) return res.status(404).json({ message: "Auction not found" });
 
     // Prevent seller from bidding on their own auction
-    if (product.seller.toString() === user) {
+    if (product.seller.toString() === user.toString()) {
       return res
         .status(403)
         .json({ message: "You cannot bid on your own auction" });
@@ -590,6 +590,7 @@ export const getSimilarAuctions = async (req, res) => {
       currentPrice: item.currentPrice,
       startingPrice: item.startingPrice,
       bidsCount: item.bids?.length || 0,
+      itemEndDate: item.itemEndDate,
       timeLeft: Math.max(0, new Date(item.itemEndDate) - now),
       itemCategory: item.itemCategory,
       sellerName: item.seller?.name || "Unknown",

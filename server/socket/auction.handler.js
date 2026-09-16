@@ -76,7 +76,7 @@ export const registerAuctionHandlers = (io, socket) => {
       }
 
       // Prevent seller from bidding on own auction
-      if (product.seller.toString() === userId) {
+      if (product.seller.toString() === userId.toString()) {
         socket.emit("auction:error", {
           message: "You cannot bid on your own auction",
         });
